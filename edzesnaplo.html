@@ -208,7 +208,7 @@ const DEFAULT_PLAN = { days: [
   ]},
   { id: 'B', tab: 'B', name: 'B nap', sub: 'lat gép, mell, tricepsz', ex: [
     { id: 'b1', name: 'Negatív pull-up', sets: 3, reps: '3', w: null, rest: 120, video: YT('Ve6-GZJmd1M'), note: 'Lefelé 5 mp.' },
-    { id: 'b2', name: 'Lat gép, egykezes lehúzás', sets: 3, reps: '10', w: 17.5, side: true, rest: 90, video: '', q: 'single arm lat pulldown machine' },
+    { id: 'b2', name: 'Lat gép, lehúzás két kézzel', sets: 3, reps: '10', w: 35, rest: 90, video: '', q: 'lat pulldown machine two handles', note: 'Közös súlyköteg, két külön fogantyú: egyszerre húzd mindkettőt.' },
     { id: 'b3', name: 'Egykezes súlyzós evezés', sets: 3, reps: '10', w: 14, side: true, rest: 90, video: YT('4ZpQb1kX7Ew') },
     { id: 'b4', name: 'Lehúzás nyújtott karral', sets: 3, reps: '12', w: 15, rest: 60, video: '', q: 'straight arm pulldown cable' },
     { id: 'b5', name: 'Oldalemelés', sets: 3, reps: '15', w: 4, pair: true, rest: 60, video: YT('TM6se0vr1VA') },
@@ -325,7 +325,10 @@ function load() {
 // régebbi terv kiegészítése: a kezdő gyakorlatok új videói és keresőszavai
 function upgradePlan(plan) {
   const def = new Map(); for (const k in PLANS) for (const d of PLANS[k].plan.days) for (const ex of d.ex) def.set(ex.id, ex);
-  for (const d of plan.days) for (const ex of d.ex) { const x = def.get(ex.id); if (!x) continue; if (!ex.video && x.video) ex.video = x.video; if (!ex.q && x.q) ex.q = x.q; }
+  for (const d of plan.days) for (const ex of d.ex) {
+    // B nap lat gép: egykezesből két kezes (közös köteg) – a súly duplázódik, a haladás megmarad
+    if (ex.id === 'b2' && ex.name === 'Lat gép, egykezes lehúzás' && ex.side) { ex.name = 'Lat gép, lehúzás két kézzel'; ex.side = false; if (ex.w != null) ex.w = Math.round(ex.w * 2 * 2) / 2; ex.q = 'lat pulldown machine two handles'; ex.note = ex.note || 'Közös súlyköteg, két külön fogantyú: egyszerre húzd mindkettőt.'; ex.up = false; }
+    const x = def.get(ex.id); if (!x) continue; if (!ex.video && x.video) ex.video = x.video; if (!ex.q && x.q) ex.q = x.q; }
   return plan;
 }
 let S = load();

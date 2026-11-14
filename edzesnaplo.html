@@ -144,6 +144,22 @@ button.chip{border:0;font:inherit;font-size:12px;font-weight:700;padding:3px 8px
 #done .big3 b{display:block;font-size:22px;color:var(--ink)}
 .conf{position:fixed;top:-12px;width:9px;height:14px;border-radius:2px;z-index:40;pointer-events:none;animation:fall linear forwards}
 @keyframes fall{to{transform:translateY(105vh) rotate(720deg);opacity:.2}}
+.prev{font-size:12.5px;color:var(--mute);margin-top:10px;padding:7px 10px;border-radius:10px;background:var(--soft)}
+.prev b{color:var(--ink);font-variant-numeric:tabular-nums}
+.chips button.swap{border:0;font:inherit;font-size:12px;font-weight:700;padding:3px 8px;border-radius:8px;background:transparent;color:var(--mute);border:1px dashed var(--line)}
+.chips span.alt{background:var(--grad);color:#fff}
+.sugg{position:relative;z-index:1;display:inline-block;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;background:rgba(255,255,255,.2);padding:3px 9px;border-radius:999px;margin-bottom:10px}
+.weeks .wgrid{display:grid;gap:5px;margin-top:12px}
+.weeks .wk{display:grid;grid-template-columns:44px repeat(7,1fr);gap:5px;align-items:center}
+.weeks .wk span{font-size:11px;color:var(--mute);font-weight:700}
+.weeks .wk b{font-size:11px;color:var(--mute);text-align:center}
+.weeks .wk i{height:16px;border-radius:5px;background:var(--line)}
+.weeks .wk i.on{background:var(--grad)}
+.weeks .wk i.fut{opacity:.35}
+.weeks .wk.met span{color:var(--acc)}
+.prs{margin:6px 0 0;padding:0;list-style:none;font-size:13px}
+.prs li{margin-top:4px}
+#done .prs{text-align:left;background:var(--soft);border-radius:16px;padding:12px 14px;margin:0 0 16px}
 </style>
 </head>
 <body>
@@ -165,6 +181,7 @@ button.chip{border:0;font:inherit;font-size:12px;font-weight:700;padding:3px 8px
 </dialog>
 
 <dialog id="done"></dialog>
+<dialog id="swapdlg"></dialog>
 
 <dialog id="restdlg">
   <b id="restdlg-t">Pihenőidő</b>
@@ -344,6 +361,7 @@ function upgradePlan(plan) {
 }
 let S = load();
 upgradePlan(S.plan);
+if (S.settings.bw && !S.settings.bwLog) S.settings.bwLog = [{ t: S.settings.bwAt || Date.now(), kg: S.settings.bw }];
 let editMode = false;
 let chartEx = '';
 
@@ -379,6 +397,8 @@ Gym.attach = async (api, uid) => {
   }
   S.sessions = cs.sort((a, b) => b.date - a.date);
   S.owner = uid;
+  if (S.settings.bw && !S.settings.bwLog) S.settings.bwLog = [{ t: S.settings.bwAt || Date.now(), kg: S.settings.bw }];
+  if (dayById(S.tab) || !S.tab) { const sd = suggestDay(); if (sd) S.tab = S.lastDay = sd; }
   Gym.cloud = api;
   save();
   render();
@@ -407,6 +427,8 @@ function fromU(v, u) {
 function setBW(kg) {
   if (kg == null || kg === S.settings.bw) return false;
   S.settings.bw = kg; S.settings.bwAt = Date.now();
+  const bl = S.settings.bwLog || (S.settings.bwLog = []); const today = new Date().toDateString();
+  const last = bl[bl.length - 1]; if (last && new Date(last.t).toDateString() === today) { last.kg = kg; last.t = Date.now(); } else bl.push({ t: Date.now(), kg });
   for (const d of S.plan.days) {
     const c = S.cur[d.id]; if (!c) continue;
     for (const ex of d.ex) if (isBW(ex)) for (const st of c.sets[ex.id] || []) if (st && !st.d) st.w = kg;
@@ -506,10 +528,11 @@ function curSet(day, ex, i) { return curArr(day, ex)[i]; }
 function finishDay(day) {
   const c = S.cur[day.id];
   const items = [];
-  if (c) for (const ex of day.ex) {
+  if (c) for (const ex of dayEx(day)) {
     const all = (c.sets[ex.id] || []).filter((s) => s && s.d).map((s) => s.wu ? { w: s.w, r: s.r, wu: 1 } : { w: s.w, r: s.r });
     if (!all.length) continue;
-    items.push({ ex: ex.id, name: ex.name, pair: !!ex.pair, side: !!ex.side, bw: isBW(ex), u: exU(ex), sets: all });
+    items.push(Object.assign({ ex: ex.id, name: ex.name, pair: !!ex.pair, side: !!ex.side, bw: isBW(ex), u: exU(ex), sets: all }, ex.alt ? { alt: ex.alt } : {}));
+    if (ex.alt) continue;
     const sets = all.filter((s) => !s.wu);
     if (!sets.length) continue;
     const target = (c.sets[ex.id] || []).filter((s) => s && !s.wu).length || ex.sets;
@@ -522,12 +545,167 @@ function finishDay(day) {
   }
   if (!items.length) { toast('Még nincs kipipált sorozat.'); return; }
   const sess = { id: newId(), date: Date.now(), t0: c.t0, day: day.id, dayName: day.name, items };
+  const prs = findPRs(sess); if (prs.length) sess.prs = prs;
   S.sessions.unshift(sess);
   delete S.cur[day.id];
   if (Gym.cloud) Gym.cloud.addSession(clone(sess)).catch((e) => console.warn(e));
   save(); keepAwake(false);
   render();
   celebrate(sess);
+}
+
+// ---------- „Foglalt a gép”: hasonló gyakorlatok ----------
+const ALT = [
+  { re: /lehúzás|pull-?up|chin-?up|húzódzkodás/i, alts: [
+    { name: 'Lehúzás széles fogással', q: 'wide grip lat pulldown', k: 1 },
+    { name: 'Lehúzás szűk V-fogással', q: 'close grip v bar lat pulldown', k: 1.05 },
+    { name: 'Lehúzás fordított (supinált) fogással', q: 'reverse grip lat pulldown', k: 0.95 },
+    { name: 'Gépes segített húzódzkodás', q: 'assisted pull up machine', k: 0.6 },
+    { name: 'Lehúzás nyújtott karral', q: 'straight arm pulldown cable', k: 0.4 } ] },
+  { re: /evezés|row/i, alts: [
+    { name: 'Ülő kábeles evezés (V-fogás)', q: 'seated cable row v bar', k: 1 },
+    { name: 'Egykezes súlyzós evezés', q: 'one arm dumbbell row', k: 0.45, side: true },
+    { name: 'Evezőgép (gépi evezés mellkastámasszal)', q: 'chest supported machine row', k: 0.9 },
+    { name: 'T-rudas evezés', q: 't bar row form', k: 0.7 } ] },
+  { re: /oldalemelés/i, alts: [
+    { name: 'Kábeles oldalemelés', q: 'cable lateral raise', k: 0.8, side: true },
+    { name: 'Gépi oldalemelés', q: 'lateral raise machine', k: 2 },
+    { name: 'Ülő oldalemelés súlyzóval', q: 'seated dumbbell lateral raise', k: 1, pair: true } ] },
+  { re: /fordított|face pull|hátsó/i, alts: [
+    { name: 'Face pull', q: 'face pull cable', k: 1 },
+    { name: 'Tárogató gép háttal (fordított repülés)', q: 'reverse pec deck rear delt fly', k: 1 },
+    { name: 'Döntött törzsű fordított repülés súlyzóval', q: 'bent over dumbbell reverse fly', k: 0.3, pair: true } ] },
+  { re: /vállnyomás|arnold|overhead press/i, alts: [
+    { name: 'Ülő súlyzós vállnyomás', q: 'seated dumbbell shoulder press', k: 1, pair: true },
+    { name: 'Vállnyomó gép', q: 'machine shoulder press', k: 2 },
+    { name: 'Arnold-nyomás', q: 'arnold press form', k: 0.9, pair: true } ] },
+  { re: /mellrepülés|tárogató gép szemből|kábeles mellrepülés|fly/i, alts: [
+    { name: 'Tárogató gép szemből (mellrepülés)', q: 'pec deck fly machine', k: 1 },
+    { name: 'Kábeles mellrepülés', q: 'cable fly form', k: 0.3, side: true },
+    { name: 'Mellrepülés súlyzóval padon', q: 'dumbbell fly form', k: 0.25, pair: true } ] },
+  { re: /fekvenyomás|mellnyomó|nyomás súlyzóval|ferde padon|fekvőtámasz/i, alts: [
+    { name: 'Fekvenyomás súlyzóval', q: 'dumbbell bench press form', k: 0.4, pair: true },
+    { name: 'Mellnyomó gép', q: 'machine chest press form', k: 1 },
+    { name: 'Ferde padon nyomás súlyzóval', q: 'incline dumbbell press form', k: 0.35, pair: true },
+    { name: 'Fekvőtámasz', q: 'push up form', bw: true } ] },
+  { re: /kalapács|bicepsz|curl/i, alts: [
+    { name: 'Bicepsz súlyzóval', q: 'dumbbell curl form', k: 1, pair: true },
+    { name: 'Kalapács bicepsz', q: 'dumbbell hammer curl', k: 1.1, pair: true },
+    { name: 'Bicepsz kábelen', q: 'cable curl form', k: 2 },
+    { name: 'EZ-rudas bicepsz', q: 'ez bar curl form', k: 2 } ] },
+  { re: /tricepsz/i, alts: [
+    { name: 'Tricepsz letolás', q: 'triceps pushdown', k: 1 },
+    { name: 'Tricepsz letolás kötéllel', q: 'rope triceps pushdown', k: 0.9 },
+    { name: 'Tricepsz nyújtás fej fölött (kábel)', q: 'overhead cable triceps extension', k: 0.8 },
+    { name: 'Tricepsz nyújtás súlyzóval fej fölött', q: 'dumbbell overhead triceps extension', k: 0.6 } ] },
+  { re: /guggolás|lábtolás|goblet/i, alts: [
+    { name: 'Lábtolás gépen', q: 'leg press form', k: 1.8 },
+    { name: 'Hack guggolás gépen', q: 'hack squat machine', k: 1 },
+    { name: 'Serleg guggolás (goblet)', q: 'goblet squat form', k: 0.35 } ] },
+  { re: /felhúzás|román/i, alts: [
+    { name: 'Román felhúzás', q: 'romanian deadlift form', k: 0.8 },
+    { name: 'Román felhúzás súlyzóval', q: 'dumbbell romanian deadlift', k: 0.35, pair: true },
+    { name: 'Hiperextenzió', q: 'back extension 45 degree', bw: true } ] },
+  { re: /csípőemelés|hip thrust|farizom/i, alts: [
+    { name: 'Csípőemelés gépen', q: 'hip thrust machine', k: 1 },
+    { name: 'Farizom gép (kick back)', q: 'glute kickback machine', k: 0.4 } ] },
+  { re: /combhajlítás/i, alts: [
+    { name: 'Ülő combhajlítás', q: 'seated leg curl machine', k: 1 },
+    { name: 'Fekvő combhajlítás', q: 'lying leg curl machine', k: 0.9 } ] }
+];
+const slug = (t) => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+function altsFor(ex) {
+  const g = ALT.find((a) => a.re.test(ex.name + ' ' + (ex.q || '')));
+  if (!g) return [];
+  return g.alts.filter((a) => a.name !== ex.name).slice(0, 4).map((a) => {
+    const id = 'alt:' + slug(a.name), prev = lastOf(id);
+    const lastW = prev ? (prev.it.sets.filter((z) => !z.wu).pop() || {}).w : null;
+    const w = a.bw ? null : (lastW != null ? lastW : (ex.w != null ? Math.max(1, Math.round(ex.w * (a.k || 1) * 2) / 2) : 5));
+    return { id, alt: ex.id, name: a.name, q: a.q, sets: ex.sets, reps: ex.reps, w, pair: !!a.pair, side: !!a.side, rest: ex.rest, video: '', note: 'Csere erre az edzésre: ' + ex.name + ' helyett.' };
+  });
+}
+// a mai edzésben ténylegesen végzett gyakorlatok (cserékkel)
+function dayEx(day) {
+  const c = S.cur[day.id], sw = c && c.swap;
+  return day.ex.map((ex) => (sw && sw[ex.id]) || ex);
+}
+let swapCtx = null;
+function openSwap(day, ex) {
+  const orig = ex.alt ? day.ex.find((x) => x.id === ex.alt) : ex;
+  const list = altsFor(orig);
+  swapCtx = { day, orig, list };
+  $('swapdlg').innerHTML = `<b>Foglalt a gép? – ${esc(orig.name)}</b><p class="meta">Válassz helyette egy hasonló gyakorlatot. Csak a mai edzésre cseréli, a terv nem változik.</p>
+    <div class="f">${list.map((a, i) => `<button class="btn" data-sw="${i}" style="text-align:left">${esc(a.name)}<br><span class="meta">${a.w == null ? 'testsúly' : esc(fmtW(a))}</span></button>`).join('') || '<p class="meta">Ehhez a gyakorlathoz nincs javaslat.</p>'}
+    ${ex.alt ? `<button class="btn w" data-sw="back">Vissza az eredetire: ${esc(orig.name)}</button>` : ''}
+    <button class="btn s" data-sw="x">Mégse</button></div>`;
+  $('swapdlg').showModal();
+}
+function doSwap(v) {
+  const { day, orig, list } = swapCtx; $('swapdlg').close();
+  if (v === 'x') return;
+  const c = S.cur[day.id] || (S.cur[day.id] = { t0: Date.now(), sets: {} });
+  c.swap = c.swap || {};
+  if (v === 'back') delete c.swap[orig.id]; else c.swap[orig.id] = list[+v];
+  save(); render(); toast(v === 'back' ? 'Visszaállítva' : 'Csere: ' + list[+v].name);
+}
+
+// ---------- előzmények, rekordok ----------
+function lastOf(id, before) {
+  for (const s of S.sessions) { if (before && s.date >= before) continue; const it = s.items.find((z) => z.ex === id); if (it) return { s, it }; }
+  return null;
+}
+const e1rm = (w, r) => (w || 0) * (1 + (r || 0) / 30);
+function bestOf(id, before) {
+  const b = { w: 0, r: 0, e: 0 };
+  for (const s of S.sessions) {
+    if (before && s.date >= before) continue;
+    const it = s.items.find((z) => z.ex === id); if (!it) continue;
+    for (const z of it.sets) if (!z.wu) { b.w = Math.max(b.w, z.w || 0); b.r = Math.max(b.r, z.r || 0); b.e = Math.max(b.e, e1rm(z.w, z.r)); }
+  }
+  return b;
+}
+function findPRs(sess) {
+  const out = [];
+  for (const it of sess.items) {
+    const work = it.sets.filter((z) => !z.wu); if (!work.length) continue;
+    const prev = bestOf(it.ex, sess.date); if (!prev.r) continue; // első alkalom nem rekord
+    const pe = exById(it.ex), u = pe ? exU(pe) : (it.u || unit());
+    if (it.bw) { const r = Math.max(...work.map((z) => z.r || 0)); if (r > prev.r) out.push({ name: it.name, txt: r + ' ismétlés' }); continue; }
+    const w = Math.max(...work.map((z) => z.w || 0)), e = Math.max(...work.map((z) => e1rm(z.w, z.r)));
+    if (w > prev.w) out.push({ name: it.name, txt: toU(w, u) + ' ' + u });
+    else if (e > prev.e + 0.01) out.push({ name: it.name, txt: 'becsült max. ' + Math.round(toU(e, u)) + ' ' + u });
+  }
+  return out;
+}
+function prevLine(ex) {
+  const p = lastOf(ex.id); if (!p) return '';
+  const u = exU(ex);
+  const sets = p.it.sets.filter((z) => !z.wu).map((z) => p.it.bw ? (z.r == null ? '?' : z.r) : (z.w == null ? '–' : toU(z.w, u)) + '×' + (z.r == null ? '?' : z.r)).join(', ');
+  return `<div class="prev">↺ Legutóbb (${esc(new Date(p.s.date).toLocaleDateString('hu-HU', { month: 'short', day: 'numeric' }))}): <b>${esc(sets)}</b>${p.it.bw ? ' ism.' : ''}</div>`;
+}
+
+// ---------- mai nap javaslata ----------
+function suggestDay() {
+  const days = S.plan.days; if (!days.length) return null;
+  const busy = days.find((d) => S.cur[d.id] && Object.values(S.cur[d.id].sets || {}).some((a) => (a || []).some((x) => x && x.d)));
+  if (busy) return busy.id;
+  const last = S.sessions.find((s) => days.some((d) => d.id === s.day));
+  if (!last) return days[0].id;
+  const i = days.findIndex((d) => d.id === last.day);
+  return days[(i + 1) % days.length].id;
+}
+
+// ---------- heti áttekintés ----------
+const weekStart = (t) => { const d = new Date(t); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d.getTime(); };
+function weekCard(X) {
+  const goal = S.settings.goal || 3, W = 7 * 86400000, now = weekStart(Date.now());
+  const cnt = {}; const daysOn = new Set();
+  for (const s of X.sessions) { const w = weekStart(s.date); cnt[w] = (cnt[w] || 0) + 1; const d = new Date(s.date); d.setHours(0, 0, 0, 0); daysOn.add(d.getTime()); }
+  let streak = 0; for (let w = now - ((cnt[now] || 0) >= goal ? 0 : W); (cnt[w] || 0) >= goal; w -= W) streak++;
+  const weeks = []; for (let k = 7; k >= 0; k--) weeks.push(now - k * W);
+  const grid = weeks.map((w) => `<div class="wk${(cnt[w] || 0) >= goal ? ' met' : ''}"><span>${new Date(w).toLocaleDateString('hu-HU', { month: 'numeric', day: 'numeric' })}</span>${[0, 1, 2, 3, 4, 5, 6].map((i) => `<i class="${daysOn.has(w + i * 86400000) ? 'on' : ''}${w + i * 86400000 > Date.now() ? ' fut' : ''}"></i>`).join('')}</div>`).join('');
+  return `<div class="card weeks"><div class="row"><div class="grow"><b>Ezen a héten: ${cnt[now] || 0}/${goal} edzés</b><div class="meta">${streak ? '🔥 ' + streak + ' hete egyhuzamban teljesítve' : 'Heti cél: ' + goal + ' edzés'}</div></div></div>
+    <div class="wgrid"><div class="wk h"><span></span>${['H', 'K', 'Sz', 'Cs', 'P', 'Sz', 'V'].map((x) => `<b>${x}</b>`).join('')}</div>${grid}</div></div>`;
 }
 
 // ---------- megjelenítés ----------
@@ -589,20 +767,21 @@ function render() {
 }
 function dayProgress(day) {
   let done = 0, all = 0;
-  for (const ex of day.ex) { const rows = setRows(day, ex).filter((s) => !s.wu); all += rows.length; done += rows.filter((s) => s.d).length; }
+  for (const ex of dayEx(day)) { const rows = setRows(day, ex).filter((s) => !s.wu); all += rows.length; done += rows.filter((s) => s.d).length; }
   return { done, all, pct: all ? done / all : 0 };
 }
 const elapsed = (t0) => { const m = Math.floor((Date.now() - t0) / 60000); return m < 60 ? m + ' perc' : Math.floor(m / 60) + ' ó ' + (m % 60) + ' p'; };
 function renderDay(day) {
   const c = S.cur[day.id], pr = dayProgress(day);
   const C = 2 * Math.PI * 28;
-  let h = `<section class="hero"><div class="hd"><div class="ring"><svg viewBox="0 0 68 68" width="68" height="68"><circle cx="34" cy="34" r="28" stroke="rgba(255,255,255,.22)" stroke-width="7" fill="none"/><circle cx="34" cy="34" r="28" stroke="#fff" stroke-width="7" fill="none" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - pr.pct)).toFixed(1)}" style="transition:stroke-dashoffset .6s"/></svg><span>${Math.round(pr.pct * 100)}%</span></div>
+  const sug = !c && S.tab === suggestDay() && S.sessions.length;
+  let h = `<section class="hero">${sug ? '<span class="sugg">★ Mai javaslat</span>' : ''}<div class="hd"><div class="ring"><svg viewBox="0 0 68 68" width="68" height="68"><circle cx="34" cy="34" r="28" stroke="rgba(255,255,255,.22)" stroke-width="7" fill="none"/><circle cx="34" cy="34" r="28" stroke="#fff" stroke-width="7" fill="none" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - pr.pct)).toFixed(1)}" style="transition:stroke-dashoffset .6s"/></svg><span>${Math.round(pr.pct * 100)}%</span></div>
     <div><h2>${esc(day.name)}</h2><div class="hs">${esc(day.sub || '')}</div></div></div>
     <div class="stats"><div><b>${day.ex.length}</b>gyakorlat</div><div><b>${pr.done}/${pr.all}</b>sorozat</div><div><b id="elapsed">${c ? elapsed(c.t0) : '–'}</b>${c ? 'eltelt' : 'még nem kezdted'}</div></div>
     ${!c && !editMode && day.ex.length ? '<button class="hbtn" data-act="start">Edzés indítása</button>' : ''}</section>`;
   h += `<button class="edit" data-act="edit">${editMode ? '✓ Kész' : '✎ Szerkesztés'}</button><h2 style="margin-bottom:12px">Gyakorlatok</h2>`;
   if (!day.ex.length) h += `<div class="empty">Még nincs gyakorlat ezen a napon.<br>Nyomd meg a ✎ Szerkesztés gombot.</div>`;
-  day.ex.forEach((ex, xi) => {
+  (editMode ? day.ex : dayEx(day)).forEach((ex, xi) => {
     const rows = setRows(day, ex);
     const work = rows.filter((s) => !s.wu);
     const doneAll = work.length > 0 && work.every((s) => s.d);
@@ -610,9 +789,10 @@ function renderDay(day) {
     const thumb = id ? `style="background-image:url('https://i.ytimg.com/vi/${id}/hqdefault.jpg')"` : '';
     h += `<article class="card ex${doneAll ? ' done' : ''}" data-ex="${esc(ex.id)}" style="animation-delay:${xi * 40}ms"><div class="exhead">
       <button class="thumb${id ? '' : ' q'}" data-act="video" ${id ? `data-vid="${id}"` : ''} ${thumb} aria-label="Videó"><i>${id ? ICON.play : ICON.search}</i></button>
-      <div class="exinfo"><h3>${esc(ex.name)}</h3><div class="chips"><span>${ex.sets}×${esc(ex.reps)}</span><span>${esc(fmtW(ex))}</span><button class="chip" data-act="restpick" title="Pihenőidő módosítása">⏱ ${ex.rest ? ex.rest + ' mp' : 'nincs pihenő'} ✎</button>${ex.up ? '<span class="up">⬆ emelhetsz</span>' : ''}</div></div>
+      <div class="exinfo"><h3>${esc(ex.name)}</h3><div class="chips"><span>${ex.sets}×${esc(ex.reps)}</span><span>${esc(fmtW(ex))}</span><button class="chip" data-act="restpick" title="Pihenőidő módosítása">⏱ ${ex.rest ? ex.rest + ' mp' : 'nincs pihenő'} ✎</button>${ex.up ? '<span class="up">⬆ emelhetsz</span>' : ''}${ex.alt ? '<span class="alt">csere</span>' : ''}${editMode ? '' : '<button class="swap" data-act="swap">⇄ foglalt a gép</button>'}</div></div>
       ${isBW(ex) ? '' : `<button class="uchip" data-act="exunit" title="Mértékegység ennél a gyakorlatnál">${exU(ex) === 'lb' ? 'font' : 'kg'}</button>`}</div>`;
     if (ex.note) h += `<div class="note">${esc(ex.note)}</div>`;
+    if (!editMode) h += prevLine(ex);
     if (editMode) {
       h += `<div class="tools"><button class="btn s" data-act="up" data-i="${xi}" ${xi ? '' : 'disabled'}>↑</button><button class="btn s" data-act="down" data-i="${xi}" ${xi < day.ex.length - 1 ? '' : 'disabled'}>↓</button><span class="grow"></span><button class="btn s" data-act="exedit" data-i="${xi}">✎ Módosítás</button></div>`;
     } else {
@@ -651,6 +831,7 @@ function setRest(v) { if (!restEx || isNaN(v)) return; restEx.rest = Math.max(0,
 $('restgrid').addEventListener('click', (e) => { const b = e.target.closest('[data-r]'); if (b) setRest(+b.dataset.r); });
 $('restok').onclick = () => { if ($('restcustom').value !== '') setRest(+$('restcustom').value); };
 $('restx').onclick = () => $('restdlg').close();
+$('swapdlg').addEventListener('click', (e) => { const b = e.target.closest('[data-sw]'); if (b) doSwap(b.dataset.sw); });
 
 // ---------- teszt adatok ----------
 function genDemo() {
@@ -726,7 +907,7 @@ function bindSwipe() {
   });
 }
 function delRow(row) {
-  const day = dayById(S.tab), ex = day && day.ex.find((x) => x.id === row.closest('[data-ex]').dataset.ex);
+  const day = dayById(S.tab), ex = day && dayEx(day).find((x) => x.id === row.closest('[data-ex]').dataset.ex);
   if (!ex) return;
   curArr(day, ex).splice(+row.dataset.i, 1);
   save(); render(); toast('Sorozat törölve');
@@ -737,7 +918,8 @@ function celebrate(sess) {
   let sets = 0, vol = 0;
   for (const it of sess.items) for (const z of it.sets) if (!z.wu) { sets++; if (!it.bw) vol += (z.w || 0) * (z.r || 0) * (it.pair || it.side ? 2 : 1); }
   const mins = Math.max(1, Math.round((sess.date - sess.t0) / 60000));
-  $('done').innerHTML = `<div style="font-size:44px">🏆</div><h2>Szép munka!</h2><div class="meta">${esc(sess.dayName)} kész, elmentve a naplóba.</div>
+  $('done').innerHTML = `<div style="font-size:44px">${sess.prs ? '🏅' : '🏆'}</div><h2>Szép munka!</h2><div class="meta">${esc(sess.dayName)} kész, elmentve a naplóba.</div>
+    ${sess.prs ? `<ul class="prs">${sess.prs.map((x) => `<li>🏅 <b>${esc(x.name)}</b>: új rekord, ${esc(x.txt)}</li>`).join('')}</ul>` : ''}
     <div class="big3"><div><b>${sets}</b>sorozat</div><div><b>${Math.round(toU(vol))}</b>${unit()} megmozgatva</div><div><b>${mins}</b>perc</div></div>
     <button class="btn p big" onclick="this.closest('dialog').close()">Köszi!</button>`;
   $('done').showModal();
@@ -753,8 +935,9 @@ function celebrate(sess) {
 function renderLog(X) {
   X = X || { sessions: S.sessions, plan: S.plan };
   const exById = (id) => { for (const d of X.plan.days) for (const ex of d.ex) if (ex.id === id) return ex; return null; };
-  if (!X.sessions.length) return `<div class="empty">Még nincs elmentett edzés. Pipáld ki a sorozatokat, majd nyomd meg az „Edzés befejezése” gombot.</div>`;
-  let h = '<p class="sub">' + X.sessions.length + ' edzés</p>';
+  const wk = weekCard(X);
+  if (!X.sessions.length) return wk + `<div class="empty">Még nincs elmentett edzés. Pipáld ki a sorozatokat, majd nyomd meg az „Edzés befejezése” gombot.</div>`;
+  let h = wk + '<p class="sub">' + X.sessions.length + ' edzés</p>';
   for (const s of X.sessions) {
     const mins = s.t0 ? Math.round((s.date - s.t0) / 60000) : 0;
     h += `<div class="card log"><div class="h"><b>${esc(fmtDate(s.date))} · ${esc(s.dayName || s.day)}</b>${mins ? `<span class="meta">${mins} perc</span>` : ''}${X.ro ? '' : `<button class="btn s w" data-act="logdel" data-id="${esc(s.id)}">🗑</button>`}</div><ul>`;
@@ -763,7 +946,7 @@ function renderLog(X) {
       if (it.bw) { const bw = it.sets.find((x) => x.w != null); h += `<li>${esc(it.name)}: <span>${it.sets.map((x) => (x.wu ? 'B ' : '') + (x.r == null ? '?' : x.r)).join(', ')} ism.${bw ? ` (testsúly ${toU(bw.w)} ${unit()})` : ''}</span></li>`; }
       else h += `<li>${esc(it.name)}: <span>${it.sets.map((x) => (x.wu ? 'B ' : '') + (x.w == null ? '–' : toU(x.w, u)) + '×' + (x.r == null ? '?' : x.r)).join(', ')} (${u})</span></li>`;
     }
-    h += '</ul></div>';
+    h += '</ul>' + (s.prs ? `<ul class="prs">${s.prs.map((x) => `<li>🏅 ${esc(x.name)}: ${esc(x.txt)}</li>`).join('')}</ul>` : '') + '</div>';
   }
   return h;
 }
@@ -791,9 +974,12 @@ function renderChart(X) {
   for (const s of X.sessions) for (const it of s.items) if (!names.has(it.ex)) names.set(it.ex, it.name);
   for (const d of X.plan.days) for (const ex of d.ex) names.set(ex.id, ex.name);
   const used = [...names].filter(([id]) => X.sessions.some((s) => s.items.some((it) => it.ex === id)));
-  if (!used.length) return `<div class="empty">A grafikon az első befejezett edzés után jelenik meg.<br>Edzés végén nyomd meg az „Edzés befejezése” gombot, csak akkor kerül be a naplóba.</div>`;
+  let bwh = '';
+  const bl = X.bwLog || (X === undefined ? null : null);
+  if (!X.ro) { const log = (S.settings.bwLog || []).slice().sort((a, b) => a.t - b.t); if (log.length) bwh = chartSvg(log.map((z) => ({ l: new Date(z.t).toLocaleDateString('hu-HU', { month: 'numeric', day: 'numeric' }), y: toU(z.kg) })), `Testsúly (${unit()})`); }
+  if (!used.length) return bwh + `<div class="empty">A grafikon az első befejezett edzés után jelenik meg.<br>Edzés végén nyomd meg az „Edzés befejezése” gombot, csak akkor kerül be a naplóba.</div>`;
   if (!used.some(([id]) => id === chartEx)) chartEx = used[0][0];
-  let h = `<p class="sub">Gyakorlatonként, edzésről edzésre</p><select id="chartsel">${used.map(([id, n]) => `<option value="${esc(id)}"${id === chartEx ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select><div style="height:10px"></div>`;
+  let h = bwh + `<p class="sub">Gyakorlatonként, edzésről edzésre</p><select id="chartsel">${used.map(([id, n]) => `<option value="${esc(id)}"${id === chartEx ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select><div style="height:10px"></div>`;
   const rows = X.sessions.slice().reverse().map((s) => { const it = s.items.find((z) => z.ex === chartEx); return { s, it: it && Object.assign({}, it, { sets: it.sets.filter((z) => !z.wu) }) }; }).filter((x) => x.it && x.it.sets.length);
   const lbl = (s) => new Date(s.date).toLocaleDateString('hu-HU', { month: 'numeric', day: 'numeric' });
   const bw = rows.every((x) => x.it.bw || x.it.sets.every((z) => z.w == null));
@@ -803,6 +989,7 @@ function renderChart(X) {
     h += chartSvg(rows.map((x) => ({ l: lbl(x.s), y: Math.max(...x.it.sets.map((z) => z.r || 0)) })), 'Legtöbb ismétlés egy sorozatban');
   } else {
     h += chartSvg(rows.map((x) => ({ l: lbl(x.s), y: toU(Math.max(...x.it.sets.map((z) => z.w || 0)), cu) })), `Legnagyobb súly (${cu})`);
+    h += chartSvg(rows.map((x) => ({ l: lbl(x.s), y: Math.round(toU(Math.max(...x.it.sets.map((z) => e1rm(z.w, z.r))), cu)) })), `Becsült maximum, 1 ismétlés (${cu})`);
     h += chartSvg(rows.map((x) => ({ l: lbl(x.s), y: toU(x.it.sets.reduce((a, z) => a + (z.w || 0) * (z.r || 0), 0) * (x.it.pair || x.it.side ? 2 : 1), cu) })), `Megmozgatott súly: súly × ismétlés (${cu})`);
   }
   return h;
@@ -811,6 +998,7 @@ function renderSettings() {
   let h = `<div class="card f">
     <div class="row"><span class="grow">Alap mértékegység<br><span class="meta">gyakorlatonként a kártyán átállítható</span></span><div class="seg"><button data-act="unit" data-u="kg" class="${unit() === 'kg' ? 'on' : ''}">kg</button><button data-act="unit" data-u="lb" class="${unit() === 'lb' ? 'on' : ''}">font</button></div></div>
     <label>Testsúly (${unit()})${S.settings.bwAt ? ', megadva: ' + new Date(S.settings.bwAt).toLocaleDateString('hu-HU') : ''}<input type="number" id="bw" step="any" min="0" inputmode="decimal" value="${S.settings.bw == null ? '' : toU(S.settings.bw)}"></label>
+    <label>Heti cél (edzés / hét)<input type="number" id="goal" min="1" max="7" inputmode="numeric" value="${S.settings.goal || 3}"></label>
     <label>Alap pihenőidő (mp), ha a gyakorlatnál nincs megadva<input type="number" id="defrest" min="0" step="5" value="${S.settings.rest}"></label></div>`;
   h += `<div class="card" id="acct" ${window.GYM_AUTH ? '' : 'hidden'}><b>Fiók</b>
     <p class="meta">${Gym.who ? 'Belépve: ' + esc(Gym.who) + '. Az adataid a felhőbe mentődnek.' : 'Belépés után az adataid a felhőbe mentődnek, és bármelyik telefonról elérhetők.'}</p>
@@ -851,7 +1039,7 @@ $('main').addEventListener('click', (e) => {
   const b = e.target.closest('[data-act]'); if (!b) return;
   const act = b.dataset.act, day = dayById(S.tab);
   const card = b.closest('[data-ex]');
-  const ex = card && day ? day.ex.find((x) => x.id === card.dataset.ex) : null;
+  const ex = card && day ? (editMode ? day.ex : dayEx(day)).find((x) => x.id === card.dataset.ex) : null;
   const i = +b.dataset.i;
   switch (act) {
     case 'edit': editMode = !editMode; render(); break;
@@ -873,6 +1061,7 @@ $('main').addEventListener('click', (e) => {
     case 'delset': { const a = curArr(day, ex); let k = a.length - 1; while (k > 0 && a[k].d) k--; if (k >= 0) a.splice(k, 1); save(); render(); break; }
     case 'video': openVideo(ex); break;
     case 'restpick': openRest(ex); break;
+    case 'swap': openSwap(day, ex); break;
     case 'start': { S.cur[day.id] = { t0: Date.now(), sets: {} }; save(); render(); toast('Indulhat! 💪'); break; }
     case 'discard': if (confirm('Elveted a mostani edzést? A kipipált sorozatok törlődnek.')) { delete S.cur[day.id]; save(); render(); } break;
     case 'up': case 'down': { const j = act === 'up' ? i - 1 : i + 1; [day.ex[i], day.ex[j]] = [day.ex[j], day.ex[i]]; save(); render(); break; }
@@ -900,6 +1089,7 @@ $('main').addEventListener('click', (e) => {
 $('main').addEventListener('change', (e) => {
   const t = e.target;
   if (t.id === 'chartsel') { chartEx = t.value; render(); return; }
+  if (t.id === 'goal') { S.settings.goal = Math.max(1, Math.min(7, +t.value || 3)); save(); return; }
   if (t.id === 'bw') { setBW(fromU(t.value)); save(); render(); return; }
   if (t.id === 'defrest') { S.settings.rest = Math.max(0, +t.value || 0); save(); return; }
   if (t.id === 'importfile') { importFile(t.files[0]); return; }
@@ -907,7 +1097,7 @@ $('main').addEventListener('change', (e) => {
   if (dd && t.dataset.k) { S.plan.days[+dd.dataset.day][t.dataset.k] = t.value.trim(); save(); render(); return; }
   const row = t.closest('.set');
   if (row) {
-    const day = dayById(S.tab), ex = day.ex.find((x) => x.id === t.closest('[data-ex]').dataset.ex);
+    const day = dayById(S.tab), ex = dayEx(day).find((x) => x.id === t.closest('[data-ex]').dataset.ex);
     const s = curSet(day, ex, +row.dataset.i);
     if (t.classList.contains('w')) {
       s.w = fromU(t.value, exU(ex));
@@ -964,6 +1154,7 @@ $('exdel').onclick = () => {
   day.ex.splice(i, 1); exCtx = null; $('exdlg').close(); save(); render();
 };
 
+{ const sd = suggestDay(); if (sd) S.tab = S.lastDay = sd; }
 render();
 
 // a weboldalon: telepíthető app (service worker) és bejelentkezés

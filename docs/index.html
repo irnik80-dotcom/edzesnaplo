@@ -610,6 +610,31 @@ function renderDay(day) {
 }
 setInterval(() => { const el = $('elapsed'), d = dayById(S.tab); if (el && d && S.cur[d.id]) el.textContent = elapsed(S.cur[d.id].t0); }, 20000);
 
+// ---------- teszt adatok ----------
+function genDemo() {
+  const days = PLANS.monika.plan.days, N = 12, now = Date.now(), DAY = 86400000;
+  const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  const step = (ex) => (ex.pair || ex.side) ? 1 : 2.5;
+  const roundTo = (v, st) => Math.max(st, Math.round(v / st) * st);
+  for (let k = 0; k < N; k++) {
+    const day = days[k % days.length], f = 0.85 + 0.15 * k / (N - 1);
+    const d0 = new Date(now - Math.round((N - 1 - k) * 2.3 + 1) * DAY); d0.setHours(rnd(16, 19), rnd(0, 59), 0, 0);
+    const date = d0.getTime(), dur = rnd(48, 72) * 60000;
+    const items = day.ex.map((ex) => {
+      const [mn, mx] = range(ex.reps), sets = [];
+      const bw = isBW(ex), w = bw ? (S.settings.bw || 62) : roundTo(ex.w * f, step(ex));
+      for (let i = 0; i < (ex.wu || 0); i++) sets.push({ w: bw ? w : roundTo(w / 2, step(ex)), r: 12, wu: 1 });
+      for (let i = 0; i < ex.sets; i++) sets.push({ w, r: Math.max(1, rnd(mn, mx) + (bw ? Math.floor(k / 4) : 0) - (i === ex.sets - 1 ? rnd(0, 1) : 0)) });
+      return { ex: ex.id, name: ex.name, pair: !!ex.pair, side: !!ex.side, bw, u: 'kg', sets };
+    });
+    const sess = { id: 'demo-' + newId(), demo: true, date: date + dur, t0: date, day: day.id, dayName: day.name, items };
+    S.sessions.push(sess);
+    if (Gym.cloud) Gym.cloud.addSession(clone(sess)).catch(console.warn);
+  }
+  S.sessions.sort((a, b) => b.date - a.date);
+  return N;
+}
+
 // ---------- admin: a többiek edzései ----------
 let ADM = null;
 async function loadAdm() {
@@ -765,6 +790,8 @@ function renderSettings() {
   h += `<button class="btn" data-act="dnew" style="margin-top:10px">+ Új nap</button></div>`;
   h += `<div class="card"><b>Mentés</b><p class="meta">A terv és a napló letölthető fájlba, és onnan visszatölthető.</p>
     <div class="row"><button class="btn" data-act="export">Letöltés</button><label class="btn">Visszatöltés<input type="file" id="importfile" accept="application/json,.json" hidden></label></div></div>
+    <div class="card f"><b>Teszt adatok</b><p class="meta">12 véletlenszerű, már befejezett edzést generál az elmúlt 4 hétre az A/B/C napok alapján, fokozatosan növekvő súlyokkal, hogy kipróbálhasd a naplót és a grafikont. Egy gombbal törölhetők, a valódi edzéseidhez nem nyúl.</p>
+    <div class="row"><button class="btn" data-act="demo">Teszt edzések generálása</button>${S.sessions.some((x) => x.demo) ? '<button class="btn w" data-act="demodel">Teszt edzések törlése</button>' : ''}</div></div>
     <div class="card f"><b>Kész tervek</b><p class="meta">A kiválasztott terv lecseréli a mostanit. A napló megmarad.</p>
     <select id="tplsel">${Object.entries(PLANS).map(([k, v]) => `<option value="${k}">${esc(v.name)}</option>`).join('')}</select>
     <button class="btn w" data-act="reset">Terv betöltése</button></div>`;
@@ -821,6 +848,8 @@ $('main').addEventListener('click', (e) => {
     }
     case 'reset': { const k = $('tplsel').value; if (confirm(`Betöltöd: ${PLANS[k].name}? A mostani terved és a saját módosításaid elvesznek, a napló megmarad.`)) { S.plan = clone(PLANS[k].plan); S.cur = {}; S.tab = S.lastDay = S.plan.days[0].id; save(); render(); window.scrollTo(0, 0); toast('Terv betöltve'); } break; }
     case 'admuser': ADM = { uid: b.dataset.uid, view: 'log', data: null }; render(); loadAdm(); break;
+    case 'demo': { const n = genDemo(); save(); render(); toast(n + ' teszt edzés hozzáadva'); break; }
+    case 'demodel': { const del = S.sessions.filter((x) => x.demo); S.sessions = S.sessions.filter((x) => !x.demo); if (Gym.cloud) for (const x of del) Gym.cloud.delSession(x.id).catch(console.warn); save(); render(); toast('Teszt edzések törölve'); break; }
     case 'admback': ADM = null; render(); break;
     case 'admview': ADM.view = b.dataset.v; render(); break;
   }

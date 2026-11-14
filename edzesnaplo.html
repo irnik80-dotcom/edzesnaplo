@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Edzésnapló</title>
+<meta name="theme-color" content="#44587a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{--bg:#f4f3f0;--card:#fff;--ink:#23262d;--mute:#7a7f88;--line:#e2e0db;--acc:#44587a;--acc2:#e8ecf3;--warn:#a5522f;--r:14px}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:calc(8px + env(safe-area-inset-top)) 10px 6px;border-bottom:1px solid var(--line)}
+nav{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+nav button{flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:7px 14px;font:inherit;font-weight:600}
+nav button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+main{padding:12px 10px 120px;max-width:640px;margin:0 auto}
+h2{margin:4px 2px 2px;font-size:22px}
+.sub{color:var(--mute);margin:0 2px 12px;font-size:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px;margin-bottom:10px}
+.card.done{border-color:var(--acc)}
+.top{display:flex;align-items:flex-start;gap:8px}
+.top .nm{flex:1;font-weight:650}
+.meta{color:var(--mute);font-size:14px;margin-top:2px}
+.note{font-size:13px;color:var(--mute);margin-top:4px;font-style:italic}
+.badge{display:inline-block;background:var(--acc2);color:var(--acc);font-size:12px;font-weight:700;border-radius:6px;padding:1px 6px;margin-left:4px;vertical-align:1px}
+a.vid{flex:0 0 auto;text-decoration:none;background:#c4302b;color:#fff;border-radius:8px;padding:4px 9px;font-size:13px;font-weight:700}
+.sets{margin-top:8px;display:grid;gap:6px}
+.set{display:grid;grid-template-columns:22px 1fr 1fr 46px;gap:6px;align-items:center}
+.set .n{color:var(--mute);font-size:13px;text-align:center}
+.set label{position:relative}
+.set input{width:100%;font:inherit;padding:8px 34px 8px 8px;border:1px solid var(--line);border-radius:10px;background:#faf9f7;color:var(--ink)}
+.set label span{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--mute);pointer-events:none}
+.ok{height:40px;border-radius:10px;border:2px solid var(--line);background:#fff;font-size:20px;color:#bbb}
+.set.d .ok{background:var(--acc);border-color:var(--acc);color:#fff}
+.set.d input{background:var(--acc2)}
+.btn{font:inherit;font-weight:600;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:10px 14px}
+.btn.p{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn.w{color:var(--warn)}
+.btn.s{padding:6px 10px;font-size:14px;border-radius:9px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.grow{flex:1}
+.tools{display:flex;gap:6px;margin-top:8px}
+#rest{position:fixed;left:0;right:0;bottom:0;z-index:9;background:var(--ink);color:#fff;padding:10px 14px calc(10px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:10px}
+#rest[hidden]{display:none}
+#rest .t{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;min-width:80px}
+#rest .bar{flex:1;height:6px;background:#ffffff33;border-radius:3px;overflow:hidden}
+#rest .bar i{display:block;height:100%;background:#fff;width:0}
+#rest button{font:inherit;border:0;border-radius:9px;padding:8px 10px;background:#ffffff22;color:#fff;font-weight:600}
+#rest.end{background:var(--acc)}
+dialog{border:0;border-radius:var(--r);padding:16px;width:min(94vw,460px);background:var(--card);color:var(--ink)}
+dialog::backdrop{background:#0006}
+.f{display:grid;gap:10px}
+.f label{display:grid;gap:3px;font-size:13px;color:var(--mute)}
+.f input[type=text],.f input[type=number],.f input[type=url],.f input[type=email],.f input[type=password],.f textarea,select{font:inherit;padding:9px;border:1px solid var(--line);border-radius:10px;background:#faf9f7;color:var(--ink);width:100%}
+.f .ck{display:flex;gap:8px;align-items:center;color:var(--ink);font-size:15px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.log .h{display:flex;gap:8px;align-items:baseline}
+.log .h b{flex:1}
+.log ul{margin:6px 0 0;padding-left:18px;font-size:14px}
+.log li span{color:var(--mute)}
+svg text{font-size:11px;fill:var(--mute)}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 16px;border-radius:999px;font-size:14px;z-index:20;opacity:0;transition:opacity .25s;pointer-events:none}
+#toast.on{opacity:1}
+.empty{color:var(--mute);text-align:center;padding:30px 10px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{font:inherit;border:0;background:var(--card);padding:8px 16px;color:var(--ink)}
+.seg button.on{background:var(--acc);color:#fff}
+.err{color:var(--warn);font-size:14px;min-height:1em}
+</style>
+</head>
+<body>
+<header><nav id="tabs"></nav></header>
+<main id="main"></main>
+
+<div id="rest" hidden>
+  <div class="t" id="rest-t">1:30</div>
+  <div class="bar"><i id="rest-bar"></i></div>
+  <button id="rest-plus">+15</button>
+  <button id="rest-x">✕</button>
+</div>
+<div id="toast"></div>
+
+<dialog id="exdlg">
+  <form class="f" id="exform" method="dialog">
+    <b id="exdlg-title">Gyakorlat</b>
+    <label>Név<input type="text" name="name" required></label>
+    <div class="two">
+      <label>Sorozat<input type="number" name="sets" min="1" max="20" required></label>
+      <label>Ismétlés (pl. 8–10)<input type="text" name="reps" required></label>
+    </div>
+    <div class="two">
+      <label><span id="exdlg-w">Súly (kg), üresen: testsúly</span><input type="number" name="w" step="any" min="0" inputmode="decimal"></label>
+      <label>Pihenő (mp)<input type="number" name="rest" min="0" step="5"></label>
+    </div>
+    <label class="ck"><input type="checkbox" name="pair"> Két súlyzó (2×)</label>
+    <label class="ck"><input type="checkbox" name="side"> Oldalanként</label>
+    <label>Videó link<input type="url" name="video" placeholder="https://youtube.com/shorts/..."></label>
+    <label>Megjegyzés<input type="text" name="note"></label>
+    <div class="row">
+      <button class="btn w" type="button" id="exdel">Törlés</button>
+      <span class="grow"></span>
+      <button class="btn" value="cancel" formnovalidate>Mégse</button>
+      <button class="btn p" value="ok">Mentés</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+'use strict';
+const KEY = 'edzesnaplo.v1';
+const LB = 2.20462;
+const YT = (id) => 'https://www.youtube.com/shorts/' + id;
+
+// Mónika kezdő terve (súly kg-ban; pair: 2 súlyzó, side: oldalanként, w:null = testsúly)
+const DEFAULT_PLAN = { days: [
+  { id: 'A', tab: 'A', name: 'A nap', sub: 'lat, bicepsz, váll', ex: [
+    { id: 'a1', name: 'Chin-up', sets: 4, reps: '3', w: null, rest: 120, video: '', note: 'Az edzés elején, bemelegítés után.' },
+    { id: 'a2', name: 'Lehúzás széles fogással', sets: 4, reps: '8–10', w: 40, rest: 90, video: YT('mUfNdKgsgHI') },
+    { id: 'a3', name: 'Ülő kábeles evezés (V-fogás)', sets: 3, reps: '10', w: 35, rest: 90, video: '' },
+    { id: 'a4', name: 'Ülő súlyzós vállnyomás', sets: 3, reps: '8–10', w: 7, pair: true, rest: 90, video: YT('e4GP9M687zY') },
+    { id: 'a5', name: 'Tárogató gép háttal (fordított repülés)', sets: 3, reps: '15', w: 15, rest: 60, video: '', note: 'Végponton 1 mp megtartás, a vállat ne húzd fel.' },
+    { id: 'a6', name: 'Oldalemelés', sets: 3, reps: '12–15', w: 4, pair: true, rest: 60, video: YT('TM6se0vr1VA') },
+    { id: 'a7', name: 'Bicepsz súlyzóval', sets: 3, reps: '10', w: 6, pair: true, rest: 60, video: YT('e_XV8NV7xm0') }
+  ]},
+  { id: 'B', tab: 'B', name: 'B nap', sub: 'lat gép, mell, tricepsz', ex: [
+    { id: 'b1', name: 'Negatív pull-up', sets: 3, reps: '3', w: null, rest: 120, video: YT('Ve6-GZJmd1M'), note: 'Lefelé 5 mp.' },
+    { id: 'b2', name: 'Lat gép, egykezes lehúzás', sets: 3, reps: '10', w: 17.5, side: true, rest: 90, video: '' },
+    { id: 'b3', name: 'Egykezes súlyzós evezés', sets: 3, reps: '10', w: 14, side: true, rest: 90, video: YT('4ZpQb1kX7Ew') },
+    { id: 'b4', name: 'Lehúzás nyújtott karral', sets: 3, reps: '12', w: 15, rest: 60, video: '' },
+    { id: 'b5', name: 'Oldalemelés', sets: 3, reps: '15', w: 4, pair: true, rest: 60, video: YT('TM6se0vr1VA') },
+    { id: 'b6', name: 'Tárogató gép szemből (mellrepülés)', sets: 3, reps: '12', w: 20, rest: 60, video: '' },
+    { id: 'b7', name: 'Tricepsz letolás', sets: 3, reps: '12', w: 15, rest: 60, video: YT('xSV6-hE3prc') }
+  ]},
+  { id: 'C', tab: 'C', name: 'C nap', sub: 'vegyes', ex: [
+    { id: 'c1', name: 'Gumiszalaggal segített pull-up', sets: 3, reps: '5', w: null, rest: 120, video: YT('fzsc4e6rSZ0') },
+    { id: 'c2', name: 'Lehúzás szűk V-fogással', sets: 4, reps: '8–10', w: 45, rest: 90, video: '' },
+    { id: 'c3', name: 'Egykezes evezés a pad mellől', sets: 3, reps: '8', w: 14, side: true, rest: 90, video: '', note: 'Helyette jó a T-rudas evezés is, 15 kg tárcsával.' },
+    { id: 'c4', name: 'Állva vállnyomás', sets: 3, reps: '8', w: 6, pair: true, rest: 90, video: 'https://youtube.com/shorts/pUnqrbxkdLA' },
+    { id: 'c5', name: 'Face pull', sets: 3, reps: '15', w: 15, rest: 60, video: YT('jF5CK2nk0p8') },
+    { id: 'c6', name: 'Kalapács bicepsz', sets: 3, reps: '12', w: 7, pair: true, rest: 0, video: '', note: 'Szuperszett a tricepsz letolással: pihenő nélkül jön a következő.' },
+    { id: 'c7', name: 'Tricepsz letolás', sets: 3, reps: '12', w: 15, rest: 60, video: YT('xSV6-hE3prc') }
+  ]}
+]};
+
+const clone = (o) => JSON.parse(JSON.stringify(o));
+const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const $ = (id) => document.getElementById(id);
+
+function fresh() { return { v: 1, at: 0, owner: null, settings: { unit: 'kg', rest: 90 }, plan: clone(DEFAULT_PLAN), cur: {}, sessions: [], tab: 'A' }; }
+function load() {
+  try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.plan && s.plan.days) return Object.assign(fresh(), s); } catch (e) {}
+  return fresh();
+}
+let S = load();
+let editMode = false;
+let chartEx = '';
+
+// ---------- felhő (az auth.js tölti fel) ----------
+const Gym = window.Gym = { cloud: null, who: null };
+let cloudTimer = null;
+function pushCloud() {
+  if (!Gym.cloud) return;
+  clearTimeout(cloudTimer);
+  cloudTimer = setTimeout(() => {
+    Gym.cloud.setDoc(clone({ plan: S.plan, settings: S.settings, cur: S.cur, at: S.at }))
+      .catch((e) => console.warn('Felhős mentés sikertelen', e));
+  }, 1200);
+}
+function save(sync = true) {
+  S.at = Date.now();
+  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+  if (sync) pushCloud();
+}
+Gym.attach = async (api, uid) => {
+  const d = await api.getDoc();
+  const cs = await api.listSessions();
+  const have = new Set(cs.map((s) => s.id));
+  if (!S.owner || S.owner === uid) {
+    for (const s of S.sessions) if (!have.has(s.id)) { api.addSession(clone(s)).catch(console.warn); cs.push(s); }
+  } else {
+    S = fresh();
+  }
+  if (d && d.plan && d.plan.days) {
+    S.plan = d.plan;
+    S.settings = Object.assign({ unit: 'kg', rest: 90 }, d.settings || {});
+    S.cur = d.cur || {};
+  }
+  S.sessions = cs.sort((a, b) => b.date - a.date);
+  S.owner = uid;
+  Gym.cloud = api;
+  save();
+  render();
+};
+Gym.detach = () => { Gym.cloud = null; S = fresh(); save(false); render(); };
+Gym.setWho = (name, msg) => { Gym.who = name || null; Gym.msg = msg || ''; if (S.tab === 'set') render(); };
+
+// ---------- segédek ----------
+const unit = () => S.settings.unit;
+function toU(kg) {
+  if (kg == null || kg === '') return '';
+  if (unit() === 'lb') return Math.round(kg * LB);
+  return Math.round(kg * 100) / 100;
+}
+function fromU(v) {
+  if (v === '' || v == null || isNaN(+v)) return null;
+  v = +v;
+  return unit() === 'lb' ? Math.round((v / LB) * 100) / 100 : v;
+}
+function range(reps) {
+  const p = String(reps).split(/[–-]/).map((x) => parseInt(x, 10)).filter((x) => !isNaN(x));
+  return p.length ? [p[0], p[p.length - 1]] : [0, 0];
+}
+function fmtW(ex, w) {
+  w = w === undefined ? ex.w : w;
+  if (w == null) return 'testsúly';
+  return (ex.pair ? '2×' : '') + toU(w) + ' ' + unit() + (ex.side ? ' / oldal' : '');
+}
+const fmtDate = (t) => new Date(t).toLocaleDateString('hu-HU', { month: 'short', day: 'numeric', weekday: 'short' });
+const mmss = (s) => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('on'), 2200); }
+const dayById = (id) => S.plan.days.find((d) => d.id === id);
+
+// ---------- pihenőidő ----------
+let restEnd = 0, restLen = 0, restTick = null, audio = null;
+function beep() {
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.25, 0.5].forEach((d) => {
+      const o = audio.createOscillator(), g = audio.createGain();
+      o.frequency.value = 880; o.connect(g); g.connect(audio.destination);
+      g.gain.setValueAtTime(0.25, audio.currentTime + d); g.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + d + 0.2);
+      o.start(audio.currentTime + d); o.stop(audio.currentTime + d + 0.21);
+    });
+  } catch (e) {}
+}
+function startRest(sec) {
+  if (!sec) return;
+  try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); audio.resume(); } catch (e) {}
+  restLen = sec; restEnd = Date.now() + sec * 1000;
+  $('rest').hidden = false; $('rest').classList.remove('end');
+  clearInterval(restTick); restTick = setInterval(tickRest, 250); tickRest();
+}
+function tickRest() {
+  const left = (restEnd - Date.now()) / 1000;
+  if (left <= 0) {
+    clearInterval(restTick);
+    $('rest-t').textContent = 'Mehet!'; $('rest-bar').style.width = '100%'; $('rest').classList.add('end');
+    if (navigator.vibrate) navigator.vibrate([300, 150, 300, 150, 300]);
+    beep();
+    setTimeout(() => { if (restEnd <= Date.now()) $('rest').hidden = true; }, 4000);
+    return;
+  }
+  $('rest-t').textContent = mmss(Math.ceil(left));
+  $('rest-bar').style.width = (100 * (1 - left / restLen)) + '%';
+}
+$('rest-plus').onclick = () => { restEnd += 15000; restLen += 15; if ($('rest').classList.contains('end')) startRest(15); };
+$('rest-x').onclick = () => { clearInterval(restTick); restEnd = 0; $('rest').hidden = true; };
+
+// képernyő ébren tartása edzés közben
+let wake = null;
+async function keepAwake(on) {
+  try {
+    if (on && !wake && navigator.wakeLock && document.visibilityState === 'visible') { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => { wake = null; }); }
+    if (!on && wake) { await wake.release(); wake = null; }
+  } catch (e) {}
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { const d = dayById(S.tab); keepAwake(!!(d && S.cur[d.id])); if (restEnd) tickRest(); } });
+
+// ---------- folyamatban lévő edzés ----------
+function curSet(day, ex, i, create) {
+  let c = S.cur[day.id];
+  if (!c) { if (!create) return null; c = S.cur[day.id] = { t0: Date.now(), sets: {} }; }
+  const arr = c.sets[ex.id] || (create ? (c.sets[ex.id] = []) : null);
+  if (!arr) return null;
+  if (!arr[i] && create) arr[i] = { d: 0, w: ex.w == null ? null : ex.w, r: null };
+  return arr[i] || null;
+}
+function finishDay(day) {
+  const c = S.cur[day.id];
+  const items = [];
+  if (c) for (const ex of day.ex) {
+    const sets = (c.sets[ex.id] || []).filter((s) => s && s.d).map((s) => ({ w: s.w, r: s.r }));
+    if (!sets.length) continue;
+    items.push({ ex: ex.id, name: ex.name, pair: !!ex.pair, side: !!ex.side, sets });
+    const [, max] = range(ex.reps);
+    const lastW = sets[sets.length - 1].w;
+    const sameW = lastW === ex.w;
+    if (!sameW && lastW != null) { ex.w = lastW; ex.up = false; }
+    else ex.up = sets.length >= ex.sets && sets.every((s) => (s.r || 0) >= max) && ex.w != null;
+  }
+  if (!items.length) { toast('Még nincs kipipált sorozat.'); return; }
+  const sess = { id: newId(), date: Date.now(), t0: c.t0, day: day.id, dayName: day.name, items };
+  S.sessions.unshift(sess);
+  delete S.cur[day.id];
+  if (Gym.cloud) Gym.cloud.addSession(clone(sess)).catch((e) => console.warn(e));
+  save(); keepAwake(false);
+  toast('Edzés elmentve 💪');
+  render();
+}
+
+// ---------- megjelenítés ----------
+function render() {
+  const tabs = S.plan.days.map((d) => [d.id, d.tab || d.name]).concat([['log', 'Napló'], ['chart', 'Grafikon'], ['set', '⚙']]);
+  if (!tabs.some((t) => t[0] === S.tab)) S.tab = S.plan.days[0] ? S.plan.days[0].id : 'set';
+  $('tabs').innerHTML = tabs.map(([id, l]) => `<button data-tab="${esc(id)}" class="${id === S.tab ? 'on' : ''}">${esc(l)}</button>`).join('');
+  const d = dayById(S.tab);
+  $('main').innerHTML = d ? renderDay(d) : S.tab === 'log' ? renderLog() : S.tab === 'chart' ? renderChart() : renderSettings();
+  keepAwake(!!(d && S.cur[d.id]));
+}
+function renderDay(day) {
+  const c = S.cur[day.id];
+  let h = `<div class="row"><h2 class="grow">${esc(day.name)}</h2><button class="btn s" data-act="edit">${editMode ? 'Kész' : '✎ Szerkesztés'}</button></div><p class="sub">${esc(day.sub || '')}</p>`;
+  if (!day.ex.length) h += `<div class="empty">Még nincs gyakorlat ezen a napon.</div>`;
+  day.ex.forEach((ex, xi) => {
+    const sets = c && c.sets[ex.id] || [];
+    const doneAll = sets.filter((s) => s && s.d).length >= ex.sets;
+    h += `<div class="card${doneAll ? ' done' : ''}" data-ex="${esc(ex.id)}"><div class="top"><div class="nm">${esc(ex.name)}${ex.up ? '<span class="badge">⬆ emelhetsz</span>' : ''}</div>${ex.video ? `<a class="vid" href="${esc(ex.video)}" target="_blank" rel="noopener">▶ videó</a>` : ''}</div>`;
+    h += `<div class="meta">${ex.sets}×${esc(ex.reps)} · ${esc(fmtW(ex))}${ex.rest ? ` · pihenő ${ex.rest} mp` : ''}</div>`;
+    if (ex.note) h += `<div class="note">${esc(ex.note)}</div>`;
+    if (editMode) {
+      h += `<div class="tools"><button class="btn s" data-act="up" data-i="${xi}" ${xi ? '' : 'disabled'}>↑</button><button class="btn s" data-act="down" data-i="${xi}" ${xi < day.ex.length - 1 ? '' : 'disabled'}>↓</button><span class="grow"></span><button class="btn s" data-act="exedit" data-i="${xi}">✎ Módosítás</button></div>`;
+    } else {
+      h += '<div class="sets">';
+      for (let i = 0; i < ex.sets; i++) {
+        const s = sets[i];
+        const w = s ? s.w : ex.w;
+        h += `<div class="set${s && s.d ? ' d' : ''}" data-i="${i}"><div class="n">${i + 1}.</div>
+          <label><input class="w" type="number" inputmode="decimal" step="any" value="${w == null ? '' : toU(w)}" placeholder="${ex.w == null ? 'testsúly' : ''}"><span>${unit()}</span></label>
+          <label><input class="r" type="number" inputmode="numeric" value="${s && s.r != null ? s.r : ''}" placeholder="${esc(ex.reps)}"><span>ism.</span></label>
+          <button class="ok" data-act="tick">✓</button></div>`;
+      }
+      h += '</div>';
+    }
+    h += '</div>';
+  });
+  if (editMode) h += `<button class="btn p" data-act="exnew" style="width:100%">+ Új gyakorlat</button>`;
+  else if (c) h += `<div class="row" style="margin-top:6px"><button class="btn w" data-act="discard">Elvetés</button><span class="grow"></span><button class="btn p" data-act="finish">Edzés befejezése</button></div><p class="sub" style="margin-top:8px">Elkezdve: ${new Date(c.t0).toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' })}</p>`;
+  return h;
+}
+function renderLog() {
+  if (!S.sessions.length) return `<h2>Napló</h2><div class="empty">Még nincs elmentett edzés. Pipáld ki a sorozatokat, majd nyomd meg az „Edzés befejezése” gombot.</div>`;
+  let h = '<h2>Napló</h2><p class="sub">' + S.sessions.length + ' edzés</p>';
+  for (const s of S.sessions) {
+    const mins = s.t0 ? Math.round((s.date - s.t0) / 60000) : 0;
+    h += `<div class="card log"><div class="h"><b>${esc(fmtDate(s.date))} · ${esc(s.dayName || s.day)}</b>${mins ? `<span class="meta">${mins} perc</span>` : ''}<button class="btn s w" data-act="logdel" data-id="${esc(s.id)}">🗑</button></div><ul>`;
+    for (const it of s.items) h += `<li>${esc(it.name)}: <span>${it.sets.map((x) => (x.w == null ? 'tst' : toU(x.w)) + '×' + (x.r == null ? '?' : x.r)).join(', ')}</span></li>`;
+    h += '</ul></div>';
+  }
+  return h;
+}
+function chartSvg(pts, label) {
+  const W = 320, H = 150, L = 34, R = 10, T = 10, B = 22;
+  if (!pts.length) return '';
+  const ys = pts.map((p) => p.y), mn = Math.min(...ys), mx = Math.max(...ys);
+  const lo = mn === mx ? mn - 1 : mn - (mx - mn) * 0.1, hi = mn === mx ? mx + 1 : mx + (mx - mn) * 0.1;
+  const X = (i) => pts.length === 1 ? (L + W - R) / 2 : L + (i * (W - L - R)) / (pts.length - 1);
+  const Y = (v) => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
+  const line = pts.map((p, i) => `${X(i).toFixed(1)},${Y(p.y).toFixed(1)}`).join(' ');
+  const r = (v) => Math.round(v * 10) / 10;
+  return `<div class="card"><b>${esc(label)}</b><svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(label)}">
+    <line x1="${L}" x2="${W - R}" y1="${Y(mx)}" y2="${Y(mx)}" stroke="#e2e0db"/><line x1="${L}" x2="${W - R}" y1="${Y(mn)}" y2="${Y(mn)}" stroke="#e2e0db"/>
+    <text x="${L - 4}" y="${Y(mx) + 4}" text-anchor="end">${r(mx)}</text><text x="${L - 4}" y="${Y(mn) + 4}" text-anchor="end">${r(mn)}</text>
+    <polyline points="${line}" fill="none" stroke="#44587a" stroke-width="2.5" stroke-linejoin="round"/>
+    ${pts.map((p, i) => `<circle cx="${X(i)}" cy="${Y(p.y)}" r="3.5" fill="#44587a"><title>${esc(p.l)}: ${r(p.y)}</title></circle>`).join('')}
+    <text x="${L}" y="${H - 5}">${esc(pts[0].l)}</text>${pts.length > 1 ? `<text x="${W - R}" y="${H - 5}" text-anchor="end">${esc(pts[pts.length - 1].l)}</text>` : ''}
+  </svg></div>`;
+}
+function renderChart() {
+  const names = new Map();
+  for (const s of S.sessions) for (const it of s.items) if (!names.has(it.ex)) names.set(it.ex, it.name);
+  for (const d of S.plan.days) for (const ex of d.ex) names.set(ex.id, ex.name);
+  const used = [...names].filter(([id]) => S.sessions.some((s) => s.items.some((it) => it.ex === id)));
+  if (!used.length) return `<h2>Grafikon</h2><div class="empty">A grafikon az első elmentett edzés után jelenik meg.</div>`;
+  if (!used.some(([id]) => id === chartEx)) chartEx = used[0][0];
+  let h = `<h2>Grafikon</h2><p class="sub">Gyakorlatonként, edzésről edzésre</p><select id="chartsel">${used.map(([id, n]) => `<option value="${esc(id)}"${id === chartEx ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select><div style="height:10px"></div>`;
+  const rows = S.sessions.slice().reverse().map((s) => ({ s, it: s.items.find((it) => it.ex === chartEx) })).filter((x) => x.it);
+  const lbl = (s) => new Date(s.date).toLocaleDateString('hu-HU', { month: 'numeric', day: 'numeric' });
+  const bw = rows.every((x) => x.it.sets.every((z) => z.w == null));
+  if (bw) {
+    h += chartSvg(rows.map((x) => ({ l: lbl(x.s), y: x.it.sets.reduce((a, z) => a + (z.r || 0), 0) })), 'Ismétlések összesen');
+    h += chartSvg(rows.map((x) => ({ l: lbl(x.s), y: Math.max(...x.it.sets.map((z) => z.r || 0)) })), 'Legtöbb ismétlés egy sorozatban');
+  } else {
+    h += chartSvg(rows.map((x) => ({ l: lbl(x.s), y: toU(Math.max(...x.it.sets.map((z) => z.w || 0))) })), `Legnagyobb súly (${unit()})`);
+    h += chartSvg(rows.map((x) => ({ l: lbl(x.s), y: toU(x.it.sets.reduce((a, z) => a + (z.w || 0) * (z.r || 0), 0)) })), `Megmozgatott súly: súly × ismétlés (${unit()})`);
+  }
+  return h;
+}
+function renderSettings() {
+  let h = `<h2>Beállítások</h2><div class="card f">
+    <div class="row"><span class="grow">Mértékegység</span><div class="seg"><button data-act="unit" data-u="kg" class="${unit() === 'kg' ? 'on' : ''}">kg</button><button data-act="unit" data-u="lb" class="${unit() === 'lb' ? 'on' : ''}">font</button></div></div>
+    <label>Alap pihenőidő (mp), ha a gyakorlatnál nincs megadva<input type="number" id="defrest" min="0" step="5" value="${S.settings.rest}"></label></div>`;
+  h += `<div class="card" id="acct" ${window.GYM_AUTH ? '' : 'hidden'}><b>Fiók</b>
+    <p class="meta">${Gym.who ? 'Belépve: ' + esc(Gym.who) + '. Az adataid a felhőbe mentődnek.' : 'Belépés után az adataid a felhőbe mentődnek, és bármelyik telefonról elérhetők.'}</p>
+    ${Gym.msg ? `<p class="err">${esc(Gym.msg)}</p>` : ''}
+    <div id="login-box" class="f" ${Gym.who ? 'hidden' : ''}>
+      <button class="btn p" id="login-google" type="button">Belépés Google-fiókkal</button>
+      <form id="login-form" class="f"><input type="email" id="login-email" placeholder="E-mail" autocomplete="email" required><input type="password" id="login-pass" placeholder="Jelszó (min. 6 karakter)" autocomplete="current-password" minlength="6" required>
+      <div class="row"><button class="btn" type="submit">Belépés</button><button class="btn" type="button" id="login-register">Regisztráció</button><button class="btn s" type="button" id="login-reset">Elfelejtett jelszó</button></div></form>
+      <p class="err" id="login-err"></p>
+    </div>
+    <button class="btn" id="logout" ${Gym.who ? '' : 'hidden'}>Kilépés</button></div>`;
+  h += `<div class="card"><b>Napok</b><p class="meta">A fül felirata legyen rövid (pl. A).</p>`;
+  S.plan.days.forEach((d, i) => {
+    h += `<div class="f" style="border-top:1px solid var(--line);padding-top:10px;margin-top:10px" data-day="${i}">
+      <div class="two"><label>Fül<input type="text" data-k="tab" value="${esc(d.tab || '')}" maxlength="10"></label><label>Név<input type="text" data-k="name" value="${esc(d.name)}"></label></div>
+      <label>Leírás<input type="text" data-k="sub" value="${esc(d.sub || '')}"></label>
+      <div class="row"><button class="btn s" data-act="dup" data-i="${i}" ${i ? '' : 'disabled'}>↑</button><button class="btn s" data-act="ddown" data-i="${i}" ${i < S.plan.days.length - 1 ? '' : 'disabled'}>↓</button><span class="grow"></span><button class="btn s w" data-act="ddel" data-i="${i}">Nap törlése</button></div></div>`;
+  });
+  h += `<button class="btn" data-act="dnew" style="margin-top:10px">+ Új nap</button></div>`;
+  h += `<div class="card"><b>Mentés</b><p class="meta">A terv és a napló letölthető fájlba, és onnan visszatölthető.</p>
+    <div class="row"><button class="btn" data-act="export">Letöltés</button><label class="btn">Visszatöltés<input type="file" id="importfile" accept="application/json,.json" hidden></label></div></div>
+    <div class="card"><b>Kezdő terv</b><p class="meta">Visszaállítja Mónika A/B/C tervét. A napló megmarad.</p><button class="btn w" data-act="reset">Terv visszaállítása</button></div>`;
+  return h;
+}
+
+// ---------- események ----------
+$('tabs').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-tab]'); if (!b) return;
+  S.tab = b.dataset.tab; editMode = false; save(false); render(); window.scrollTo(0, 0);
+});
+$('main').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const act = b.dataset.act, day = dayById(S.tab);
+  const card = b.closest('[data-ex]');
+  const ex = card && day ? day.ex.find((x) => x.id === card.dataset.ex) : null;
+  const i = +b.dataset.i;
+  switch (act) {
+    case 'edit': editMode = !editMode; render(); break;
+    case 'tick': {
+      const row = b.closest('.set'), si = +row.dataset.i;
+      const s = curSet(day, ex, si, true);
+      const wv = row.querySelector('.w').value, rv = row.querySelector('.r').value;
+      s.w = fromU(wv); s.r = rv === '' ? range(ex.reps)[0] : +rv;
+      s.d = s.d ? 0 : 1;
+      save(); render();
+      if (s.d) startRest(ex.rest == null ? S.settings.rest : ex.rest);
+      break;
+    }
+    case 'finish': finishDay(day); break;
+    case 'discard': if (confirm('Elveted a mostani edzést? A kipipált sorozatok törlődnek.')) { delete S.cur[day.id]; save(); render(); } break;
+    case 'up': case 'down': { const j = act === 'up' ? i - 1 : i + 1; [day.ex[i], day.ex[j]] = [day.ex[j], day.ex[i]]; save(); render(); break; }
+    case 'exedit': openEx(day, i); break;
+    case 'exnew': openEx(day, -1); break;
+    case 'logdel': if (confirm('Törlöd ezt az edzést a naplóból?')) { S.sessions = S.sessions.filter((s) => s.id !== b.dataset.id); if (Gym.cloud) Gym.cloud.delSession(b.dataset.id).catch(console.warn); save(); render(); } break;
+    case 'unit': S.settings.unit = b.dataset.u; save(); render(); break;
+    case 'dup': case 'ddown': { const d = S.plan.days, j = act === 'dup' ? i - 1 : i + 1; [d[i], d[j]] = [d[j], d[i]]; save(); render(); break; }
+    case 'ddel': if (confirm(`Törlöd a(z) „${S.plan.days[i].name}” napot a gyakorlataival együtt?`)) { delete S.cur[S.plan.days[i].id]; S.plan.days.splice(i, 1); save(); render(); } break;
+    case 'dnew': { const n = S.plan.days.length; S.plan.days.push({ id: newId(), tab: String.fromCharCode(65 + n), name: String.fromCharCode(65 + n) + ' nap', sub: '', ex: [] }); save(); render(); break; }
+    case 'export': {
+      const blob = new Blob([JSON.stringify({ app: 'edzesnaplo', v: 1, plan: S.plan, settings: S.settings, sessions: S.sessions }, null, 1)], { type: 'application/json' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'edzesnaplo-' + new Date().toISOString().slice(0, 10) + '.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      break;
+    }
+    case 'reset': if (confirm('Visszaállítod a kezdő tervet? A saját módosításaid elvesznek, a napló megmarad.')) { S.plan = clone(DEFAULT_PLAN); S.cur = {}; save(); render(); toast('Kezdő terv visszaállítva'); } break;
+  }
+});
+$('main').addEventListener('change', (e) => {
+  const t = e.target;
+  if (t.id === 'chartsel') { chartEx = t.value; render(); return; }
+  if (t.id === 'defrest') { S.settings.rest = Math.max(0, +t.value || 0); save(); return; }
+  if (t.id === 'importfile') { importFile(t.files[0]); return; }
+  const dd = t.closest('[data-day]');
+  if (dd && t.dataset.k) { S.plan.days[+dd.dataset.day][t.dataset.k] = t.value.trim(); save(); render(); return; }
+  const row = t.closest('.set');
+  if (row) {
+    const day = dayById(S.tab), ex = day.ex.find((x) => x.id === t.closest('[data-ex]').dataset.ex);
+    const s = curSet(day, ex, +row.dataset.i, true);
+    if (t.classList.contains('w')) s.w = fromU(t.value);
+    else s.r = t.value === '' ? null : +t.value;
+    save();
+  }
+});
+function importFile(f) {
+  if (!f) return;
+  f.text().then((txt) => {
+    const d = JSON.parse(txt);
+    if (!d || !d.plan || !Array.isArray(d.plan.days)) throw new Error('nem edzésnapló fájl');
+    if (!confirm('Betöltöd a fájlt? A terv lecserélődik, a napló bejegyzései hozzáadódnak a meglévőkhöz.')) return;
+    S.plan = d.plan; if (d.settings) S.settings = Object.assign(S.settings, d.settings);
+    const have = new Set(S.sessions.map((s) => s.id));
+    for (const s of d.sessions || []) if (!have.has(s.id)) { S.sessions.push(s); if (Gym.cloud) Gym.cloud.addSession(clone(s)).catch(console.warn); }
+    S.sessions.sort((a, b) => b.date - a.date);
+    save(); render(); toast('Betöltve');
+  }).catch((e) => alert('A fájl nem tölthető be: ' + e.message));
+}
+
+// gyakorlat szerkesztése
+let exCtx = null;
+function openEx(day, i) {
+  exCtx = { day, i };
+  const ex = i >= 0 ? day.ex[i] : { name: '', sets: 3, reps: '10', w: null, rest: S.settings.rest, video: '', note: '' };
+  const f = $('exform');
+  f.name.value = ex.name; f.sets.value = ex.sets; f.reps.value = ex.reps;
+  f.w.value = ex.w == null ? '' : toU(ex.w); f.rest.value = ex.rest == null ? '' : ex.rest;
+  f.pair.checked = !!ex.pair; f.side.checked = !!ex.side; f.video.value = ex.video || ''; f.note.value = ex.note || '';
+  $('exdlg-title').textContent = i >= 0 ? 'Gyakorlat módosítása' : 'Új gyakorlat';
+  $('exdlg-w').textContent = `Súly (${unit() === 'lb' ? 'font' : 'kg'}), üresen: testsúly`;
+  $('exdel').hidden = i < 0;
+  $('exdlg').showModal();
+}
+$('exdlg').addEventListener('close', () => {
+  if ($('exdlg').returnValue !== 'ok' || !exCtx) return;
+  const f = $('exform'), { day, i } = exCtx;
+  const ex = i >= 0 ? day.ex[i] : { id: newId() };
+  const oldW = ex.w;
+  Object.assign(ex, {
+    name: f.name.value.trim(), sets: Math.max(1, +f.sets.value || 1), reps: f.reps.value.trim(),
+    w: fromU(f.w.value), rest: f.rest.value === '' ? null : Math.max(0, +f.rest.value),
+    pair: f.pair.checked, side: f.side.checked, video: f.video.value.trim(), note: f.note.value.trim()
+  });
+  if (ex.w !== oldW) ex.up = false;
+  if (i < 0) day.ex.push(ex);
+  save(); render();
+});
+$('exdel').onclick = () => {
+  const { day, i } = exCtx;
+  if (!confirm(`Törlöd: ${day.ex[i].name}?`)) return;
+  day.ex.splice(i, 1); exCtx = null; $('exdlg').close(); save(); render();
+};
+
+render();
+
+// a weboldalon: telepíthető app (service worker) és bejelentkezés
+const onSite = /github\.io$|^localhost$|^127\.0\.0\.1$/.test(location.hostname);
+if (onSite && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch((e) => console.warn(e));
+if (onSite) { window.GYM_AUTH = true; import('./auth.js').catch((e) => { console.warn('Bejelentkezés nem érhető el', e); window.GYM_AUTH = false; }); }
+</script>
+</body>
+</html>

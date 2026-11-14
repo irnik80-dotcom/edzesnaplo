@@ -69,6 +69,10 @@ svg text{font-size:11px;fill:var(--mute)}
 .seg button{font:inherit;border:0;background:var(--card);padding:8px 16px;color:var(--ink)}
 .seg button.on{background:var(--acc);color:#fff}
 .err{color:var(--warn);font-size:14px;min-height:1em}
+.set.wu input{border-style:dashed}
+.set.wu .n{color:var(--acc);font-weight:700}
+.addset{display:flex;gap:6px;margin-top:8px}
+.addset button{font:inherit;font-size:13px;border:1px dashed var(--line);background:transparent;color:var(--mute);border-radius:9px;padding:5px 10px}
 .uchip{flex:0 0 auto;font:inherit;font-size:13px;font-weight:700;border:1px solid var(--line);background:var(--acc2);color:var(--acc);border-radius:8px;padding:3px 8px}
 </style>
 </head>
@@ -96,6 +100,7 @@ svg text{font-size:11px;fill:var(--mute)}
       <label><span id="exdlg-w">Súly (kg), üresen: testsúly</span><input type="number" name="w" step="any" min="0" inputmode="decimal"></label>
       <label>Pihenő (mp)<input type="number" name="rest" min="0" step="5"></label>
     </div>
+    <label>Bemelegítő sorozatok (mindig megjelennek a munkasorozatok előtt)<input type="number" name="wu" min="0" max="5"></label>
     <label>Mértékegység ennél a gyakorlatnál<select name="unit"><option value="">Alapértelmezett</option><option value="kg">kg</option><option value="lb">font</option></select></label>
     <label class="ck"><input type="checkbox" name="pair"> Két súlyzó (2×)</label>
     <label class="ck"><input type="checkbox" name="side"> Oldalanként</label>
@@ -288,21 +293,40 @@ async function keepAwake(on) {
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { const d = dayById(S.tab); keepAwake(!!(d && S.cur[d.id])); if (restEnd) tickRest(); } });
 
 // ---------- folyamatban lévő edzés ----------
-function curSet(day, ex, i, create) {
-  let c = S.cur[day.id];
-  if (!c) { if (!create) return null; c = S.cur[day.id] = { t0: Date.now(), sets: {} }; }
-  const arr = c.sets[ex.id] || (create ? (c.sets[ex.id] = []) : null);
-  if (!arr) return null;
-  if (!arr[i] && create) arr[i] = { d: 0, w: isBW(ex) ? (S.settings.bw == null ? null : S.settings.bw) : ex.w, r: null };
-  return arr[i] || null;
+// sorozatok: előbb a bemelegítők (wu), aztán a munkasorozatok; x = edzés közben hozzáadott
+const workW = (ex) => isBW(ex) ? (S.settings.bw == null ? null : S.settings.bw) : ex.w;
+const wuW = (ex) => isBW(ex) ? workW(ex) : (ex.w == null ? null : Math.round(ex.w) / 2);
+function baseSets(ex) {
+  const a = [];
+  for (let i = 0; i < (ex.wu || 0); i++) a.push({ d: 0, wu: 1, w: wuW(ex), r: null });
+  for (let i = 0; i < ex.sets; i++) a.push({ d: 0, w: workW(ex), r: null });
+  return a;
 }
+function setRows(day, ex) {
+  const c = S.cur[day.id], arr = c && c.sets[ex.id];
+  const base = baseSets(ex);
+  if (!arr) return base;
+  const n = Math.max(arr.length, base.length), out = [];
+  for (let i = 0; i < n; i++) out.push(arr[i] || base[i] || { d: 0, w: workW(ex), r: null });
+  return out;
+}
+function curArr(day, ex) {
+  let c = S.cur[day.id];
+  if (!c) c = S.cur[day.id] = { t0: Date.now(), sets: {} };
+  const rows = setRows(day, ex);
+  c.sets[ex.id] = rows;
+  return rows;
+}
+function curSet(day, ex, i) { return curArr(day, ex)[i]; }
 function finishDay(day) {
   const c = S.cur[day.id];
   const items = [];
   if (c) for (const ex of day.ex) {
-    const sets = (c.sets[ex.id] || []).filter((s) => s && s.d).map((s) => ({ w: s.w, r: s.r }));
+    const all = (c.sets[ex.id] || []).filter((s) => s && s.d).map((s) => s.wu ? { w: s.w, r: s.r, wu: 1 } : { w: s.w, r: s.r });
+    if (!all.length) continue;
+    items.push({ ex: ex.id, name: ex.name, pair: !!ex.pair, side: !!ex.side, bw: isBW(ex), u: exU(ex), sets: all });
+    const sets = all.filter((s) => !s.wu);
     if (!sets.length) continue;
-    items.push({ ex: ex.id, name: ex.name, pair: !!ex.pair, side: !!ex.side, bw: isBW(ex), u: exU(ex), sets });
     const [, max] = range(ex.reps);
     if (isBW(ex)) { ex.up = sets.length >= ex.sets && sets.every((s) => (s.r || 0) >= max); continue; }
     const lastW = sets[sets.length - 1].w;
@@ -334,8 +358,8 @@ function renderDay(day) {
   let h = `<div class="row"><h2 class="grow">${esc(day.name)}</h2><button class="btn s" data-act="edit">${editMode ? 'Kész' : '✎ Szerkesztés'}</button></div><p class="sub">${esc(day.sub || '')}</p>`;
   if (!day.ex.length) h += `<div class="empty">Még nincs gyakorlat ezen a napon.</div>`;
   day.ex.forEach((ex, xi) => {
-    const sets = c && c.sets[ex.id] || [];
-    const doneAll = sets.filter((s) => s && s.d).length >= ex.sets;
+    const rows = setRows(day, ex);
+    const doneAll = rows.filter((s) => s.d && !s.wu).length >= ex.sets;
     h += `<div class="card${doneAll ? ' done' : ''}" data-ex="${esc(ex.id)}"><div class="top"><div class="nm">${esc(ex.name)}${ex.up ? '<span class="badge">⬆ emelhetsz</span>' : ''}</div>${isBW(ex) ? '' : `<button class="uchip" data-act="exunit" title="Mértékegység ennél a gyakorlatnál">${exU(ex) === 'lb' ? 'font' : 'kg'}</button>`}${ex.video ? `<a class="vid" href="${esc(ex.video)}" target="_blank" rel="noopener">▶ videó</a>` : ''}</div>`;
     h += `<div class="meta">${ex.sets}×${esc(ex.reps)} · ${esc(fmtW(ex))}${ex.rest ? ` · pihenő ${ex.rest} mp` : ''}</div>`;
     if (ex.note) h += `<div class="note">${esc(ex.note)}</div>`;
@@ -343,15 +367,15 @@ function renderDay(day) {
       h += `<div class="tools"><button class="btn s" data-act="up" data-i="${xi}" ${xi ? '' : 'disabled'}>↑</button><button class="btn s" data-act="down" data-i="${xi}" ${xi < day.ex.length - 1 ? '' : 'disabled'}>↓</button><span class="grow"></span><button class="btn s" data-act="exedit" data-i="${xi}">✎ Módosítás</button></div>`;
     } else {
       h += '<div class="sets">';
-      for (let i = 0; i < ex.sets; i++) {
-        const s = sets[i];
-        const w = isBW(ex) ? (s && s.d ? s.w : S.settings.bw) : (s ? s.w : ex.w);
-        h += `<div class="set${s && s.d ? ' d' : ''}" data-i="${i}"><div class="n">${i + 1}.</div>
+      let no = 0;
+      rows.forEach((s, i) => {
+        const w = isBW(ex) ? (s.d ? s.w : S.settings.bw) : s.w;
+        h += `<div class="set${s.d ? ' d' : ''}${s.wu ? ' wu' : ''}" data-i="${i}"><div class="n" title="${s.wu ? 'bemelegítő' : ''}">${s.wu ? 'B' : (++no) + '.'}</div>
           <label><input class="w" type="number" inputmode="decimal" step="any" value="${w == null ? '' : toU(w, exU(ex))}" placeholder="${isBW(ex) ? 'testsúly' : ''}"><span>${exU(ex)}</span></label>
-          <label><input class="r" type="number" inputmode="numeric" value="${s && s.r != null ? s.r : ''}" placeholder="${esc(ex.reps)}"><span>ism.</span></label>
+          <label><input class="r" type="number" inputmode="numeric" value="${s.r != null ? s.r : ''}" placeholder="${s.wu ? '12' : esc(ex.reps)}"><span>ism.</span></label>
           <button class="ok" data-act="tick">✓</button></div>`;
-      }
-      h += '</div>';
+      });
+      h += `</div><div class="addset"><button data-act="addwu">+ bemelegítő</button><button data-act="addset">+ sorozat</button>${rows.some((s) => s.x) ? '<button data-act="delset">− utolsó hozzáadott</button>' : ''}</div>`;
     }
     h += '</div>';
   });
@@ -367,8 +391,8 @@ function renderLog() {
     h += `<div class="card log"><div class="h"><b>${esc(fmtDate(s.date))} · ${esc(s.dayName || s.day)}</b>${mins ? `<span class="meta">${mins} perc</span>` : ''}<button class="btn s w" data-act="logdel" data-id="${esc(s.id)}">🗑</button></div><ul>`;
     for (const it of s.items) {
       const pe = exById(it.ex), u = pe ? exU(pe) : (it.u || unit());
-      if (it.bw) { const bw = it.sets.find((x) => x.w != null); h += `<li>${esc(it.name)}: <span>${it.sets.map((x) => x.r == null ? '?' : x.r).join(', ')} ism.${bw ? ` (testsúly ${toU(bw.w)} ${unit()})` : ''}</span></li>`; }
-      else h += `<li>${esc(it.name)}: <span>${it.sets.map((x) => (x.w == null ? '–' : toU(x.w, u)) + '×' + (x.r == null ? '?' : x.r)).join(', ')} (${u})</span></li>`;
+      if (it.bw) { const bw = it.sets.find((x) => x.w != null); h += `<li>${esc(it.name)}: <span>${it.sets.map((x) => (x.wu ? 'B ' : '') + (x.r == null ? '?' : x.r)).join(', ')} ism.${bw ? ` (testsúly ${toU(bw.w)} ${unit()})` : ''}</span></li>`; }
+      else h += `<li>${esc(it.name)}: <span>${it.sets.map((x) => (x.wu ? 'B ' : '') + (x.w == null ? '–' : toU(x.w, u)) + '×' + (x.r == null ? '?' : x.r)).join(', ')} (${u})</span></li>`;
     }
     h += '</ul></div>';
   }
@@ -399,7 +423,7 @@ function renderChart() {
   if (!used.length) return `<h2>Grafikon</h2><div class="empty">A grafikon az első elmentett edzés után jelenik meg.</div>`;
   if (!used.some(([id]) => id === chartEx)) chartEx = used[0][0];
   let h = `<h2>Grafikon</h2><p class="sub">Gyakorlatonként, edzésről edzésre</p><select id="chartsel">${used.map(([id, n]) => `<option value="${esc(id)}"${id === chartEx ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select><div style="height:10px"></div>`;
-  const rows = S.sessions.slice().reverse().map((s) => ({ s, it: s.items.find((it) => it.ex === chartEx) })).filter((x) => x.it);
+  const rows = S.sessions.slice().reverse().map((s) => { const it = s.items.find((z) => z.ex === chartEx); return { s, it: it && Object.assign({}, it, { sets: it.sets.filter((z) => !z.wu) }) }; }).filter((x) => x.it && x.it.sets.length);
   const lbl = (s) => new Date(s.date).toLocaleDateString('hu-HU', { month: 'numeric', day: 'numeric' });
   const bw = rows.every((x) => x.it.bw || x.it.sets.every((z) => z.w == null));
   const pe = exById(chartEx), cu = pe ? exU(pe) : ((rows[0] && rows[0].it.u) || unit());
@@ -456,16 +480,19 @@ $('main').addEventListener('click', (e) => {
     case 'edit': editMode = !editMode; render(); break;
     case 'tick': {
       const row = b.closest('.set'), si = +row.dataset.i;
-      const s = curSet(day, ex, si, true);
+      const s = curSet(day, ex, si);
       const wv = row.querySelector('.w').value, rv = row.querySelector('.r').value;
-      s.w = fromU(wv, exU(ex)); s.r = rv === '' ? range(ex.reps)[0] : +rv;
-      if (isBW(ex)) setBW(s.w);
+      s.w = fromU(wv, exU(ex)); s.r = rv === '' ? (s.wu ? 12 : range(ex.reps)[0]) : +rv;
+      if (isBW(ex) && !s.wu) setBW(s.w);
       s.d = s.d ? 0 : 1;
       save(); render();
-      if (s.d) startRest(ex.rest == null ? S.settings.rest : ex.rest);
+      if (s.d) { const rr = ex.rest == null ? S.settings.rest : ex.rest; startRest(s.wu ? Math.min(rr, 60) : rr); }
       break;
     }
     case 'finish': finishDay(day); break;
+    case 'addset': { const a = curArr(day, ex); const last = a.filter((x) => !x.wu).pop(); a.push({ d: 0, x: 1, w: last ? last.w : workW(ex), r: null }); save(); render(); break; }
+    case 'addwu': { const a = curArr(day, ex); const k = a.filter((x) => x.wu).length; a.splice(k, 0, { d: 0, wu: 1, x: 1, w: wuW(ex), r: null }); save(); render(); break; }
+    case 'delset': { const a = curArr(day, ex); for (let k = a.length - 1; k >= 0; k--) if (a[k].x) { a.splice(k, 1); break; } save(); render(); break; }
     case 'discard': if (confirm('Elveted a mostani edzést? A kipipált sorozatok törlődnek.')) { delete S.cur[day.id]; save(); render(); } break;
     case 'up': case 'down': { const j = act === 'up' ? i - 1 : i + 1; [day.ex[i], day.ex[j]] = [day.ex[j], day.ex[i]]; save(); render(); break; }
     case 'exedit': openEx(day, i); break;
@@ -495,10 +522,10 @@ $('main').addEventListener('change', (e) => {
   const row = t.closest('.set');
   if (row) {
     const day = dayById(S.tab), ex = day.ex.find((x) => x.id === t.closest('[data-ex]').dataset.ex);
-    const s = curSet(day, ex, +row.dataset.i, true);
+    const s = curSet(day, ex, +row.dataset.i);
     if (t.classList.contains('w')) {
       s.w = fromU(t.value, exU(ex));
-      if (isBW(ex) && setBW(s.w)) { save(); render(); toast('Testsúly frissítve mindenhol'); return; }
+      if (isBW(ex) && !s.wu && setBW(s.w)) { save(); render(); toast('Testsúly frissítve mindenhol'); return; }
     } else s.r = t.value === '' ? null : +t.value;
     save();
   }
@@ -524,7 +551,7 @@ function openEx(day, i) {
   const ex = i >= 0 ? day.ex[i] : { name: '', sets: 3, reps: '10', w: null, rest: S.settings.rest, video: '', note: '' };
   const f = $('exform');
   f.name.value = ex.name; f.sets.value = ex.sets; f.reps.value = ex.reps;
-  f.unit.value = ex.unit || ''; f.w.value = ex.w == null ? '' : toU(ex.w, exU(ex)); f.rest.value = ex.rest == null ? '' : ex.rest;
+  f.unit.value = ex.unit || ''; f.wu.value = ex.wu || 0; f.w.value = ex.w == null ? '' : toU(ex.w, exU(ex)); f.rest.value = ex.rest == null ? '' : ex.rest;
   f.pair.checked = !!ex.pair; f.side.checked = !!ex.side; f.video.value = ex.video || ''; f.note.value = ex.note || '';
   $('exdlg-title').textContent = i >= 0 ? 'Gyakorlat módosítása' : 'Új gyakorlat';
   $('exdlg-w').textContent = 'Súly (a választott mértékegységben), üresen: testsúly';
@@ -538,7 +565,7 @@ $('exdlg').addEventListener('close', () => {
   const oldW = ex.w;
   Object.assign(ex, {
     name: f.name.value.trim(), sets: Math.max(1, +f.sets.value || 1), reps: f.reps.value.trim(),
-    unit: f.unit.value, w: fromU(f.w.value, f.unit.value || unit()), rest: f.rest.value === '' ? null : Math.max(0, +f.rest.value),
+    wu: Math.max(0, Math.min(5, +f.wu.value || 0)), unit: f.unit.value, w: fromU(f.w.value, f.unit.value || unit()), rest: f.rest.value === '' ? null : Math.max(0, +f.rest.value),
     pair: f.pair.checked, side: f.side.checked, video: f.video.value.trim(), note: f.note.value.trim()
   });
   if (ex.w !== oldW) ex.up = false;

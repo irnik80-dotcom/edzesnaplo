@@ -9,84 +9,158 @@
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
-:root{--bg:#f4f3f0;--card:#fff;--ink:#23262d;--mute:#7a7f88;--line:#e2e0db;--acc:#44587a;--acc2:#e8ecf3;--warn:#a5522f;--r:14px}
+:root{
+  --bg:#f2f1ee;--bg2:#e6e8ee;--card:rgba(255,255,255,.72);--solid:#fff;--ink:#1b1e25;--mute:#878c96;--line:rgba(24,30,48,.08);
+  --acc:#4a5d8f;--acc2:#7486ba;--soft:rgba(74,93,143,.10);--del:#d0584a;
+  --grad:linear-gradient(135deg,#2f3b60 0%,#4f639a 48%,#9aa7c8 100%);
+  --shadow:0 1px 2px rgba(20,25,40,.04),0 8px 24px -8px rgba(20,25,40,.14);
+  --r:22px;--blur:saturate(180%) blur(18px)
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0d0f14;--bg2:#161a24;--card:rgba(30,34,44,.72);--solid:#1d212b;--ink:#eef0f5;--mute:#9399a6;--line:rgba(255,255,255,.07);
+  --acc:#93a6dd;--acc2:#b6c3ea;--soft:rgba(147,166,221,.14);--shadow:0 10px 30px -12px rgba(0,0,0,.6)}}
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
-header{position:sticky;top:0;z-index:5;background:var(--bg);padding:calc(8px + env(safe-area-inset-top)) 10px 6px;border-bottom:1px solid var(--line)}
-nav{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
-nav button{flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:7px 14px;font:inherit;font-weight:600}
-nav button.on{background:var(--acc);border-color:var(--acc);color:#fff}
-main{padding:12px 10px 120px;max-width:640px;margin:0 auto}
-h2{margin:4px 2px 2px;font-size:22px}
+html,body{margin:0;color:var(--ink);font:16px/1.4 ui-rounded,"SF Pro Rounded",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
+body{background:radial-gradient(120% 60% at 100% 0%,var(--bg2) 0%,transparent 60%),radial-gradient(80% 50% at 0% 100%,var(--bg2) 0%,transparent 70%),var(--bg);background-attachment:fixed;min-height:100vh}
+button{font:inherit;color:inherit;cursor:pointer}
+#hdr{padding:calc(14px + env(safe-area-inset-top)) 18px 6px;max-width:640px;margin:0 auto}
+.date{color:var(--mute);font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+h1{margin:2px 0 12px;font-size:32px;line-height:1.1;letter-spacing:-.03em;font-weight:800}
+h2{margin:6px 2px 4px;font-size:22px;letter-spacing:-.02em}
+.seg2{position:relative;display:flex;gap:4px;padding:4px;border-radius:999px;background:var(--card);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);box-shadow:var(--shadow);border:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.seg2 button{flex:1 0 auto;min-width:56px;border:0;background:transparent;padding:9px 14px;border-radius:999px;font-weight:700;color:var(--mute);transition:all .25s}
+.seg2 button.on{background:var(--grad);color:#fff;box-shadow:0 6px 16px -6px rgba(47,59,96,.6)}
+main{padding:8px 14px calc(150px + env(safe-area-inset-bottom));max-width:640px;margin:0 auto}
 .sub{color:var(--mute);margin:0 2px 12px;font-size:14px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px;margin-bottom:10px}
-.card.done{border-color:var(--acc)}
-.top{display:flex;align-items:flex-start;gap:8px}
-.top .nm{flex:1;font-weight:650}
-.meta{color:var(--mute);font-size:14px;margin-top:2px}
-.note{font-size:13px;color:var(--mute);margin-top:4px;font-style:italic}
-.badge{display:inline-block;background:var(--acc2);color:var(--acc);font-size:12px;font-weight:700;border-radius:6px;padding:1px 6px;margin-left:4px;vertical-align:1px}
-a.vid{flex:0 0 auto;text-decoration:none;background:#c4302b;color:#fff;border-radius:8px;padding:4px 9px;font-size:13px;font-weight:700}
-.sets{margin-top:8px;display:grid;gap:6px}
-.set{display:grid;grid-template-columns:22px 1fr 1fr 46px;gap:6px;align-items:center}
-.set .n{color:var(--mute);font-size:13px;text-align:center}
+.card{background:var(--card);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px;box-shadow:var(--shadow)}
+.hero{position:relative;overflow:hidden;border-radius:28px;padding:20px;color:#fff;background:var(--grad);box-shadow:0 18px 40px -18px rgba(47,59,96,.75);margin-bottom:14px}
+.hero::after{content:"";position:absolute;right:-60px;top:-60px;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,.12)}
+.hero .hd{display:flex;align-items:center;gap:14px;position:relative;z-index:1}
+.hero h2{margin:0;font-size:26px;color:#fff}
+.hero .hs{opacity:.8;font-size:14px;margin-top:2px}
+.hero .stats{display:flex;gap:18px;margin-top:16px;position:relative;z-index:1;font-size:13px;opacity:.9}
+.hero .stats b{display:block;font-size:20px;opacity:1;font-variant-numeric:tabular-nums}
+.ring{flex:0 0 auto;width:68px;height:68px;position:relative}
+.ring svg{transform:rotate(-90deg)}
+.ring span{position:absolute;inset:0;display:grid;place-items:center;font-weight:800;font-size:15px}
+.hbtn{position:relative;z-index:1;margin-top:16px;width:100%;border:0;border-radius:16px;padding:13px;font-weight:800;background:rgba(255,255,255,.95);color:#2f3b60}
+.edit{float:right;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700;color:var(--acc)}
+.ex{animation:rise .35s both}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}}
+.ex.done{border-color:color-mix(in srgb,var(--acc) 45%,transparent)}
+.exhead{display:flex;gap:12px;align-items:center}
+.thumb{flex:0 0 auto;width:62px;height:62px;border-radius:16px;border:0;background:var(--grad) center/cover no-repeat;position:relative;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)}
+.thumb::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(0,0,0,.45))}
+.thumb i{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.92);display:grid;place-items:center}
+.thumb i svg{width:12px;height:12px;fill:#2f3b60;margin-left:2px}
+.thumb.q i svg{margin:0}
+.ex.done .thumb::after{content:"✓";position:absolute;right:4px;top:4px;width:20px;height:20px;border-radius:50%;background:#fff;color:var(--acc);font-size:12px;font-weight:900;display:grid;place-items:center}
+.exinfo{flex:1;min-width:0}
+.exinfo h3{margin:0;font-size:16.5px;line-height:1.25;letter-spacing:-.01em}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.chips span{font-size:12px;font-weight:700;padding:3px 8px;border-radius:8px;background:var(--soft);color:var(--acc)}
+.chips span.up{background:var(--grad);color:#fff}
+.uchip{flex:0 0 auto;align-self:flex-start;font-size:12px;font-weight:800;border:1px solid var(--line);background:var(--solid);color:var(--mute);border-radius:9px;padding:4px 8px}
+.note{font-size:13px;color:var(--mute);margin-top:10px;padding-left:10px;border-left:3px solid var(--soft)}
+.dots{display:flex;gap:4px;margin:12px 0 4px}
+.dots i{flex:1;height:4px;border-radius:2px;background:var(--line)}
+.dots i.on{background:var(--grad)}
+.dots i.wu{flex:.5}
+.sets{display:grid;gap:7px;margin-top:8px}
+.sw{position:relative;border-radius:14px;overflow:hidden}
+.sw::before{opacity:0;transition:opacity .15s;content:"Törlés";position:absolute;inset:0;background:var(--del);color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:flex-end;padding-right:16px;border-radius:14px}
+.sw.swiping::before{opacity:1}
+.set{position:relative;display:grid;grid-template-columns:30px 1fr 1fr 46px;gap:7px;align-items:center;background:var(--solid);border-radius:14px;padding:4px;touch-action:pan-y;transition:transform .2s}
+.set .n{font-size:13px;font-weight:800;color:var(--mute);text-align:center}
 .set label{position:relative}
-.set input{width:100%;font:inherit;padding:8px 34px 8px 8px;border:1px solid var(--line);border-radius:10px;background:#faf9f7;color:var(--ink)}
-.set label span{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--mute);pointer-events:none}
-.ok{height:40px;border-radius:10px;border:2px solid var(--line);background:#fff;font-size:20px;color:#bbb}
-.set.d .ok{background:var(--acc);border-color:var(--acc);color:#fff}
-.set.d input{background:var(--acc2)}
-.btn{font:inherit;font-weight:600;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:10px 14px}
-.btn.p{background:var(--acc);border-color:var(--acc);color:#fff}
-.btn.w{color:var(--warn)}
-.btn.s{padding:6px 10px;font-size:14px;border-radius:9px}
+.set input{width:100%;font:inherit;font-weight:700;font-variant-numeric:tabular-nums;padding:9px 34px 9px 10px;border:1px solid var(--line);border-radius:11px;background:var(--bg);color:var(--ink);outline:none;transition:border-color .2s}
+.set input:focus{border-color:var(--acc)}
+.set label span{position:absolute;right:9px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:700;color:var(--mute);pointer-events:none}
+.ok{width:42px;height:42px;border-radius:50%;border:2px solid var(--line);background:transparent;display:grid;place-items:center;transition:all .25s cubic-bezier(.3,1.6,.5,1);justify-self:end}
+.ok svg{width:18px;height:18px;stroke:var(--mute);stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.set.d .ok{background:var(--grad);border-color:transparent;transform:scale(1.04)}
+.set.d .ok svg{stroke:#fff}
+.set.d input{background:var(--soft);border-color:transparent}
+.set.wu .n{color:var(--acc)}
+.set.wu input{border-style:dashed}
+.addset{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.addset button{font-size:13px;font-weight:700;border:1px dashed color-mix(in srgb,var(--acc) 40%,transparent);background:transparent;color:var(--acc);border-radius:10px;padding:6px 11px}
+.addset button.m{color:var(--mute);border-color:var(--line)}
+.btn{font-weight:700;border-radius:14px;border:1px solid var(--line);background:var(--solid);color:var(--ink);padding:11px 16px}
+.btn.p{background:var(--grad);border-color:transparent;color:#fff;box-shadow:0 10px 24px -10px rgba(47,59,96,.7)}
+.btn.w{color:var(--del)}
+.btn.s{padding:7px 11px;font-size:14px;border-radius:11px}
+.btn.big{width:100%;padding:16px;font-size:17px;border-radius:18px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .grow{flex:1}
-.tools{display:flex;gap:6px;margin-top:8px}
-#rest{position:fixed;left:0;right:0;bottom:0;z-index:9;background:var(--ink);color:#fff;padding:10px 14px calc(10px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:10px}
+.tools{display:flex;gap:6px;margin-top:12px}
+.hint{font-size:12px;color:var(--mute);text-align:center;margin:4px 0 14px}
+#dock{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom));z-index:8;display:flex;gap:4px;padding:6px;border-radius:24px;background:var(--card);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--line);box-shadow:0 12px 32px -10px rgba(20,25,40,.35)}
+#dock button{border:0;background:transparent;width:70px;padding:7px 0 5px;border-radius:18px;display:grid;justify-items:center;gap:2px;font-size:10.5px;font-weight:700;color:var(--mute);transition:all .2s}
+#dock button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#dock button.on{color:var(--acc);background:var(--soft)}
+#rest{position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:9;max-width:520px;margin:0 auto;display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:24px;background:rgba(22,26,36,.88);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);color:#fff;box-shadow:0 20px 40px -14px rgba(0,0,0,.5);animation:rise .3s both}
 #rest[hidden]{display:none}
-#rest .t{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;min-width:80px}
-#rest .bar{flex:1;height:6px;background:#ffffff33;border-radius:3px;overflow:hidden}
-#rest .bar i{display:block;height:100%;background:#fff;width:0}
-#rest button{font:inherit;border:0;border-radius:9px;padding:8px 10px;background:#ffffff22;color:#fff;font-weight:600}
-#rest.end{background:var(--acc)}
-dialog{border:0;border-radius:var(--r);padding:16px;width:min(94vw,460px);background:var(--card);color:var(--ink)}
-dialog::backdrop{background:#0006}
-.f{display:grid;gap:10px}
-.f label{display:grid;gap:3px;font-size:13px;color:var(--mute)}
-.f input[type=text],.f input[type=number],.f input[type=url],.f input[type=email],.f input[type=password],.f textarea,select{font:inherit;padding:9px;border:1px solid var(--line);border-radius:10px;background:#faf9f7;color:var(--ink);width:100%}
+#rest .rr{position:relative;width:56px;height:56px;flex:0 0 auto}
+#rest .rr svg{transform:rotate(-90deg)}
+#rest .lbl{flex:1}
+#rest .lbl small{display:block;font-size:12px;opacity:.65;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+#rest .t{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+#rest button{border:0;border-radius:14px;padding:10px 12px;background:rgba(255,255,255,.14);color:#fff;font-weight:800}
+#rest.end{background:var(--grad);animation:pulse 1s ease-in-out 3}
+@keyframes pulse{50%{transform:scale(1.03)}}
+dialog{border:0;border-radius:26px;padding:20px;width:min(94vw,460px);background:var(--solid);color:var(--ink);box-shadow:0 30px 60px -20px rgba(0,0,0,.5)}
+dialog::backdrop{background:rgba(10,12,18,.5);backdrop-filter:blur(6px)}
+#viddlg{padding:0;overflow:hidden;width:min(92vw,400px);background:#000}
+#viddlg iframe{display:block;width:100%;aspect-ratio:9/16;max-height:74vh;border:0}
+#viddlg .vb{display:flex;gap:8px;padding:10px;background:var(--solid)}
+.f{display:grid;gap:11px}
+.f label{display:grid;gap:4px;font-size:13px;font-weight:600;color:var(--mute)}
+.f input[type=text],.f input[type=number],.f input[type=url],.f input[type=email],.f input[type=password],select{font:inherit;padding:11px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);width:100%}
 .f .ck{display:flex;gap:8px;align-items:center;color:var(--ink);font-size:15px}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.log .h{display:flex;gap:8px;align-items:baseline}
+.log .h{display:flex;gap:8px;align-items:center}
 .log .h b{flex:1}
-.log ul{margin:6px 0 0;padding-left:18px;font-size:14px}
+.log ul{margin:8px 0 0;padding-left:18px;font-size:14px}
+.log li{margin:2px 0}
 .log li span{color:var(--mute)}
+.meta{color:var(--mute);font-size:14px}
 svg text{font-size:11px;fill:var(--mute)}
-#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 16px;border-radius:999px;font-size:14px;z-index:20;opacity:0;transition:opacity .25s;pointer-events:none}
-#toast.on{opacity:1}
-.empty{color:var(--mute);text-align:center;padding:30px 10px}
-.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
-.seg button{font:inherit;border:0;background:var(--card);padding:8px 16px;color:var(--ink)}
-.seg button.on{background:var(--acc);color:#fff}
-.err{color:var(--warn);font-size:14px;min-height:1em}
-.set.wu input{border-style:dashed}
-.set.wu .n{color:var(--acc);font-weight:700}
-.addset{display:flex;gap:6px;margin-top:8px}
-.addset button{font:inherit;font-size:13px;border:1px dashed var(--line);background:transparent;color:var(--mute);border-radius:9px;padding:5px 10px}
-.uchip{flex:0 0 auto;font:inherit;font-size:13px;font-weight:700;border:1px solid var(--line);background:var(--acc2);color:var(--acc);border-radius:8px;padding:3px 8px}
+#toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translate(-50%,-20px);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:14px;font-weight:700;z-index:30;opacity:0;transition:all .3s;pointer-events:none}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+.empty{color:var(--mute);text-align:center;padding:40px 16px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.seg button{border:0;background:var(--solid);padding:8px 16px}
+.seg button.on{background:var(--grad);color:#fff}
+.err{color:var(--del);font-size:14px;min-height:1em}
+#done{text-align:center;overflow:visible}
+#done h2{font-size:28px;margin:8px 0 4px}
+#done .big3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:18px 0}
+#done .big3 div{background:var(--soft);border-radius:16px;padding:12px 4px;font-size:12px;color:var(--mute);font-weight:700}
+#done .big3 b{display:block;font-size:22px;color:var(--ink)}
+.conf{position:fixed;top:-12px;width:9px;height:14px;border-radius:2px;z-index:40;pointer-events:none;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(105vh) rotate(720deg);opacity:.2}}
 </style>
 </head>
 <body>
-<header><nav id="tabs"></nav></header>
+<header id="hdr"></header>
 <main id="main"></main>
+<nav id="dock"></nav>
 
 <div id="rest" hidden>
-  <div class="t" id="rest-t">1:30</div>
-  <div class="bar"><i id="rest-bar"></i></div>
+  <div class="rr"><svg viewBox="0 0 56 56" width="56" height="56"><circle cx="28" cy="28" r="24" stroke="rgba(255,255,255,.18)" stroke-width="5" fill="none"/><circle id="rest-ring" cx="28" cy="28" r="24" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" stroke-dasharray="150.8" stroke-dashoffset="0"/></svg></div>
+  <div class="lbl"><small id="rest-l">Pihenő</small><div class="t" id="rest-t">1:30</div></div>
   <button id="rest-plus">+15</button>
   <button id="rest-x">✕</button>
 </div>
 <div id="toast"></div>
+
+<dialog id="viddlg">
+  <iframe id="vidframe" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen title="Videó"></iframe>
+  <div class="vb"><a class="btn s" id="vidyt" target="_blank" rel="noopener">Megnyitás a YouTube-ban</a><span class="grow"></span><button class="btn s p" id="vidx">Bezárás</button></div>
+</dialog>
+
+<dialog id="done"></dialog>
 
 <dialog id="exdlg">
   <form class="f" id="exform" method="dialog">
@@ -124,30 +198,30 @@ const YT = (id) => 'https://www.youtube.com/shorts/' + id;
 // Mónika kezdő terve (súly kg-ban; pair: 2 súlyzó, side: oldalanként, w:null = testsúly)
 const DEFAULT_PLAN = { days: [
   { id: 'A', tab: 'A', name: 'A nap', sub: 'lat, bicepsz, váll', ex: [
-    { id: 'a1', name: 'Chin-up', sets: 4, reps: '3', w: null, rest: 120, video: '', note: 'Az edzés elején, bemelegítés után.' },
+    { id: 'a1', name: 'Chin-up', sets: 4, reps: '3', w: null, rest: 120, video: 'https://youtu.be/u5h9TM9KAh0', q: 'chin up', note: 'Az edzés elején, bemelegítés után.' },
     { id: 'a2', name: 'Lehúzás széles fogással', sets: 4, reps: '8–10', w: 40, rest: 90, video: YT('mUfNdKgsgHI') },
-    { id: 'a3', name: 'Ülő kábeles evezés (V-fogás)', sets: 3, reps: '10', w: 35, rest: 90, video: '' },
+    { id: 'a3', name: 'Ülő kábeles evezés (V-fogás)', sets: 3, reps: '10', w: 35, rest: 90, video: '', q: 'seated cable row v bar' },
     { id: 'a4', name: 'Ülő súlyzós vállnyomás', sets: 3, reps: '8–10', w: 7, pair: true, rest: 90, video: YT('e4GP9M687zY') },
-    { id: 'a5', name: 'Tárogató gép háttal (fordított repülés)', sets: 3, reps: '15', w: 15, rest: 60, video: '', note: 'Végponton 1 mp megtartás, a vállat ne húzd fel.' },
+    { id: 'a5', name: 'Tárogató gép háttal (fordított repülés)', sets: 3, reps: '15', w: 15, rest: 60, video: '', q: 'reverse pec deck rear delt fly', note: 'Végponton 1 mp megtartás, a vállat ne húzd fel.' },
     { id: 'a6', name: 'Oldalemelés', sets: 3, reps: '12–15', w: 4, pair: true, rest: 60, video: YT('TM6se0vr1VA') },
     { id: 'a7', name: 'Bicepsz súlyzóval', sets: 3, reps: '10', w: 6, pair: true, rest: 60, video: YT('e_XV8NV7xm0') }
   ]},
   { id: 'B', tab: 'B', name: 'B nap', sub: 'lat gép, mell, tricepsz', ex: [
     { id: 'b1', name: 'Negatív pull-up', sets: 3, reps: '3', w: null, rest: 120, video: YT('Ve6-GZJmd1M'), note: 'Lefelé 5 mp.' },
-    { id: 'b2', name: 'Lat gép, egykezes lehúzás', sets: 3, reps: '10', w: 17.5, side: true, rest: 90, video: '' },
+    { id: 'b2', name: 'Lat gép, egykezes lehúzás', sets: 3, reps: '10', w: 17.5, side: true, rest: 90, video: 'https://www.youtube.com/watch?v=N8_6r6olsVU', q: 'single arm lat pulldown machine' },
     { id: 'b3', name: 'Egykezes súlyzós evezés', sets: 3, reps: '10', w: 14, side: true, rest: 90, video: YT('4ZpQb1kX7Ew') },
-    { id: 'b4', name: 'Lehúzás nyújtott karral', sets: 3, reps: '12', w: 15, rest: 60, video: '' },
+    { id: 'b4', name: 'Lehúzás nyújtott karral', sets: 3, reps: '12', w: 15, rest: 60, video: '', q: 'straight arm pulldown cable' },
     { id: 'b5', name: 'Oldalemelés', sets: 3, reps: '15', w: 4, pair: true, rest: 60, video: YT('TM6se0vr1VA') },
-    { id: 'b6', name: 'Tárogató gép szemből (mellrepülés)', sets: 3, reps: '12', w: 20, rest: 60, video: '' },
+    { id: 'b6', name: 'Tárogató gép szemből (mellrepülés)', sets: 3, reps: '12', w: 20, rest: 60, video: '', q: 'pec deck fly machine' },
     { id: 'b7', name: 'Tricepsz letolás', sets: 3, reps: '12', w: 15, rest: 60, video: YT('xSV6-hE3prc') }
   ]},
   { id: 'C', tab: 'C', name: 'C nap', sub: 'vegyes', ex: [
     { id: 'c1', name: 'Gumiszalaggal segített pull-up', sets: 3, reps: '5', w: null, rest: 120, video: YT('fzsc4e6rSZ0') },
-    { id: 'c2', name: 'Lehúzás szűk V-fogással', sets: 4, reps: '8–10', w: 45, rest: 90, video: '' },
-    { id: 'c3', name: 'Egykezes evezés a pad mellől', sets: 3, reps: '8', w: 14, side: true, rest: 90, video: '', note: 'Helyette jó a T-rudas evezés is, 15 kg tárcsával.' },
+    { id: 'c2', name: 'Lehúzás szűk V-fogással', sets: 4, reps: '8–10', w: 45, rest: 90, video: '', q: 'close grip v bar lat pulldown' },
+    { id: 'c3', name: 'Egykezes evezés a pad mellől', sets: 3, reps: '8', w: 14, side: true, rest: 90, video: YT('4ZpQb1kX7Ew'), q: 'one arm dumbbell row', note: 'Helyette jó a T-rudas evezés is, 15 kg tárcsával.' },
     { id: 'c4', name: 'Állva vállnyomás', sets: 3, reps: '8', w: 6, pair: true, rest: 90, video: 'https://youtube.com/shorts/pUnqrbxkdLA' },
     { id: 'c5', name: 'Face pull', sets: 3, reps: '15', w: 15, rest: 60, video: YT('jF5CK2nk0p8') },
-    { id: 'c6', name: 'Kalapács bicepsz', sets: 3, reps: '12', w: 7, pair: true, rest: 0, video: '', note: 'Szuperszett a tricepsz letolással: pihenő nélkül jön a következő.' },
+    { id: 'c6', name: 'Kalapács bicepsz', sets: 3, reps: '12', w: 7, pair: true, rest: 0, video: YT('lGdqU35nYHU'), q: 'dumbbell hammer curl', note: 'Szuperszett a tricepsz letolással: pihenő nélkül jön a következő.' },
     { id: 'c7', name: 'Tricepsz letolás', sets: 3, reps: '12', w: 15, rest: 60, video: YT('xSV6-hE3prc') }
   ]}
 ]};
@@ -162,7 +236,14 @@ function load() {
   try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.plan && s.plan.days) return Object.assign(fresh(), s); } catch (e) {}
   return fresh();
 }
+// régebbi terv kiegészítése: a kezdő gyakorlatok új videói és keresőszavai
+function upgradePlan(plan) {
+  const def = new Map(); for (const d of DEFAULT_PLAN.days) for (const ex of d.ex) def.set(ex.id, ex);
+  for (const d of plan.days) for (const ex of d.ex) { const x = def.get(ex.id); if (!x) continue; if (!ex.video && x.video) ex.video = x.video; if (!ex.q && x.q) ex.q = x.q; }
+  return plan;
+}
 let S = load();
+upgradePlan(S.plan);
 let editMode = false;
 let chartEx = '';
 
@@ -192,7 +273,7 @@ Gym.attach = async (api, uid) => {
     S = fresh();
   }
   if (d && d.plan && d.plan.days) {
-    S.plan = d.plan;
+    S.plan = upgradePlan(d.plan);
     S.settings = Object.assign({ unit: 'kg', rest: 90 }, d.settings || {});
     S.cur = d.cur || {};
   }
@@ -270,14 +351,14 @@ function tickRest() {
   const left = (restEnd - Date.now()) / 1000;
   if (left <= 0) {
     clearInterval(restTick);
-    $('rest-t').textContent = 'Mehet!'; $('rest-bar').style.width = '100%'; $('rest').classList.add('end');
+    $('rest-t').textContent = 'Mehet!'; $('rest-l').textContent = 'Kész a pihenő'; $('rest-ring').style.strokeDashoffset = 0; $('rest').classList.add('end');
     if (navigator.vibrate) navigator.vibrate([300, 150, 300, 150, 300]);
     beep();
     setTimeout(() => { if (restEnd <= Date.now()) $('rest').hidden = true; }, 4000);
     return;
   }
   $('rest-t').textContent = mmss(Math.ceil(left));
-  $('rest-bar').style.width = (100 * (1 - left / restLen)) + '%';
+  $('rest-l').textContent = 'Pihenő'; $('rest-ring').style.strokeDashoffset = (150.8 * (1 - left / restLen)).toFixed(1);
 }
 $('rest-plus').onclick = () => { restEnd += 15000; restLen += 15; if ($('rest').classList.contains('end')) startRest(15); };
 $('rest-x').onclick = () => { clearInterval(restTick); restEnd = 0; $('rest').hidden = true; };
@@ -306,6 +387,7 @@ function setRows(day, ex) {
   const c = S.cur[day.id], arr = c && c.sets[ex.id];
   const base = baseSets(ex);
   if (!arr) return base;
+  if (c.fixed && c.fixed[ex.id]) return arr.map((x, i) => x || base[i] || { d: 0, w: workW(ex), r: null });
   const n = Math.max(arr.length, base.length), out = [];
   for (let i = 0; i < n; i++) out.push(arr[i] || base[i] || { d: 0, w: workW(ex), r: null });
   return out;
@@ -315,6 +397,7 @@ function curArr(day, ex) {
   if (!c) c = S.cur[day.id] = { t0: Date.now(), sets: {} };
   const rows = setRows(day, ex);
   c.sets[ex.id] = rows;
+  (c.fixed || (c.fixed = {}))[ex.id] = 1;
   return rows;
 }
 function curSet(day, ex, i) { return curArr(day, ex)[i]; }
@@ -327,12 +410,13 @@ function finishDay(day) {
     items.push({ ex: ex.id, name: ex.name, pair: !!ex.pair, side: !!ex.side, bw: isBW(ex), u: exU(ex), sets: all });
     const sets = all.filter((s) => !s.wu);
     if (!sets.length) continue;
+    const target = (c.sets[ex.id] || []).filter((s) => s && !s.wu).length || ex.sets;
     const [, max] = range(ex.reps);
-    if (isBW(ex)) { ex.up = sets.length >= ex.sets && sets.every((s) => (s.r || 0) >= max); continue; }
+    if (isBW(ex)) { ex.up = sets.length >= target && sets.every((s) => (s.r || 0) >= max); continue; }
     const lastW = sets[sets.length - 1].w;
     const sameW = lastW === ex.w;
     if (!sameW && lastW != null) { ex.w = lastW; ex.up = false; }
-    else ex.up = sets.length >= ex.sets && sets.every((s) => (s.r || 0) >= max) && ex.w != null;
+    else ex.up = sets.length >= target && sets.every((s) => (s.r || 0) >= max) && ex.w != null;
   }
   if (!items.length) { toast('Még nincs kipipált sorozat.'); return; }
   const sess = { id: newId(), date: Date.now(), t0: c.t0, day: day.id, dayName: day.name, items };
@@ -340,52 +424,152 @@ function finishDay(day) {
   delete S.cur[day.id];
   if (Gym.cloud) Gym.cloud.addSession(clone(sess)).catch((e) => console.warn(e));
   save(); keepAwake(false);
-  toast('Edzés elmentve 💪');
   render();
+  celebrate(sess);
 }
 
 // ---------- megjelenítés ----------
-function render() {
-  const tabs = S.plan.days.map((d) => [d.id, d.tab || d.name]).concat([['log', 'Napló'], ['chart', 'Grafikon'], ['set', '⚙']]);
-  if (!tabs.some((t) => t[0] === S.tab)) S.tab = S.plan.days[0] ? S.plan.days[0].id : 'set';
-  $('tabs').innerHTML = tabs.map(([id, l]) => `<button data-tab="${esc(id)}" class="${id === S.tab ? 'on' : ''}">${esc(l)}</button>`).join('');
-  const d = dayById(S.tab);
-  $('main').innerHTML = d ? renderDay(d) : S.tab === 'log' ? renderLog() : S.tab === 'chart' ? renderChart() : renderSettings();
-  keepAwake(!!(d && S.cur[d.id]));
+// ---------- videók ----------
+const ytId = (u) => { const m = String(u || '').match(/(?:shorts\/|v=|youtu\.be\/|embed\/)([\w-]{11})/); return m ? m[1] : null; };
+const ytSearch = (ex) => 'https://www.youtube.com/results?search_query=' + encodeURIComponent((ex.q || ex.name) + ' form shorts');
+const ICON = {
+  play: '<svg viewBox="0 0 12 12"><path d="M2 1l9 5-9 5z"/></svg>',
+  search: '<svg viewBox="0 0 24 24" style="fill:none;stroke:#2f3b60;stroke-width:3;width:13px;height:13px"><circle cx="10" cy="10" r="6"/><path d="M15 15l5 5"/></svg>',
+  check: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  dumb: '<svg viewBox="0 0 24 24"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg>',
+  list: '<svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>',
+  chart: '<svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 15l4-5 3 3 5-6"/></svg>',
+  gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>'
+};
+function openVideo(ex) {
+  const id = ytId(ex.video);
+  if (!id) { window.open(ex.video || ytSearch(ex), '_blank', 'noopener'); return; }
+  $('vidframe').src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&playsinline=1&rel=0&modestbranding=1`;
+  $('vidyt').href = ex.video;
+  $('viddlg').showModal();
 }
+$('vidx').onclick = () => $('viddlg').close();
+$('viddlg').addEventListener('close', () => { $('vidframe').src = 'about:blank'; });
+
+// ---------- megjelenítés ----------
+const firstName = () => (Gym.who || '').split(/[\s@]/)[0];
+function render() {
+  if (!S.plan.days.length && S.tab !== 'set') S.tab = 'set';
+  const d = dayById(S.tab);
+  if (!d && !['log', 'chart', 'set'].includes(S.tab)) S.tab = S.plan.days[0].id;
+  const view = dayById(S.tab) ? 'train' : S.tab;
+  $('dock').innerHTML = [['train', 'Edzés', ICON.dumb], ['log', 'Napló', ICON.list], ['chart', 'Haladás', ICON.chart], ['set', 'Beállítás', ICON.gear]]
+    .map(([v, l, ic]) => `<button data-nav="${v}" class="${v === view ? 'on' : ''}">${ic}${l}</button>`).join('');
+  const day = dayById(S.tab);
+  const today = new Date().toLocaleDateString('hu-HU', { weekday: 'long', month: 'long', day: 'numeric' });
+  const titles = { log: 'Napló', chart: 'Haladás', set: 'Beállítások' };
+  $('hdr').innerHTML = `<div class="date">${esc(today)}</div><h1>${day ? (firstName() ? 'Hajrá, ' + esc(firstName()) + '!' : 'Mai edzés') : titles[S.tab]}</h1>` +
+    (day ? `<div class="seg2">${S.plan.days.map((x) => `<button data-tab="${esc(x.id)}" class="${x.id === S.tab ? 'on' : ''}">${esc(x.tab || x.name)}</button>`).join('')}</div>` : '');
+  $('main').innerHTML = day ? renderDay(day) : S.tab === 'log' ? renderLog() : S.tab === 'chart' ? renderChart() : renderSettings();
+  keepAwake(!!(day && S.cur[day.id]));
+  bindSwipe();
+}
+function dayProgress(day) {
+  let done = 0, all = 0;
+  for (const ex of day.ex) { const rows = setRows(day, ex).filter((s) => !s.wu); all += rows.length; done += rows.filter((s) => s.d).length; }
+  return { done, all, pct: all ? done / all : 0 };
+}
+const elapsed = (t0) => { const m = Math.floor((Date.now() - t0) / 60000); return m < 60 ? m + ' perc' : Math.floor(m / 60) + ' ó ' + (m % 60) + ' p'; };
 function renderDay(day) {
-  const c = S.cur[day.id];
-  let h = `<div class="row"><h2 class="grow">${esc(day.name)}</h2><button class="btn s" data-act="edit">${editMode ? 'Kész' : '✎ Szerkesztés'}</button></div><p class="sub">${esc(day.sub || '')}</p>`;
-  if (!day.ex.length) h += `<div class="empty">Még nincs gyakorlat ezen a napon.</div>`;
+  const c = S.cur[day.id], pr = dayProgress(day);
+  const C = 2 * Math.PI * 28;
+  let h = `<section class="hero"><div class="hd"><div class="ring"><svg viewBox="0 0 68 68" width="68" height="68"><circle cx="34" cy="34" r="28" stroke="rgba(255,255,255,.22)" stroke-width="7" fill="none"/><circle cx="34" cy="34" r="28" stroke="#fff" stroke-width="7" fill="none" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - pr.pct)).toFixed(1)}" style="transition:stroke-dashoffset .6s"/></svg><span>${Math.round(pr.pct * 100)}%</span></div>
+    <div><h2>${esc(day.name)}</h2><div class="hs">${esc(day.sub || '')}</div></div></div>
+    <div class="stats"><div><b>${day.ex.length}</b>gyakorlat</div><div><b>${pr.done}/${pr.all}</b>sorozat</div><div><b id="elapsed">${c ? elapsed(c.t0) : '–'}</b>${c ? 'eltelt' : 'még nem kezdted'}</div></div>
+    ${!c && !editMode && day.ex.length ? '<button class="hbtn" data-act="start">Edzés indítása</button>' : ''}</section>`;
+  h += `<button class="edit" data-act="edit">${editMode ? '✓ Kész' : '✎ Szerkesztés'}</button><h2 style="margin-bottom:12px">Gyakorlatok</h2>`;
+  if (!day.ex.length) h += `<div class="empty">Még nincs gyakorlat ezen a napon.<br>Nyomd meg a ✎ Szerkesztés gombot.</div>`;
   day.ex.forEach((ex, xi) => {
     const rows = setRows(day, ex);
-    const doneAll = rows.filter((s) => s.d && !s.wu).length >= ex.sets;
-    h += `<div class="card${doneAll ? ' done' : ''}" data-ex="${esc(ex.id)}"><div class="top"><div class="nm">${esc(ex.name)}${ex.up ? '<span class="badge">⬆ emelhetsz</span>' : ''}</div>${isBW(ex) ? '' : `<button class="uchip" data-act="exunit" title="Mértékegység ennél a gyakorlatnál">${exU(ex) === 'lb' ? 'font' : 'kg'}</button>`}${ex.video ? `<a class="vid" href="${esc(ex.video)}" target="_blank" rel="noopener">▶ videó</a>` : ''}</div>`;
-    h += `<div class="meta">${ex.sets}×${esc(ex.reps)} · ${esc(fmtW(ex))}${ex.rest ? ` · pihenő ${ex.rest} mp` : ''}</div>`;
+    const work = rows.filter((s) => !s.wu);
+    const doneAll = work.length > 0 && work.every((s) => s.d);
+    const id = ytId(ex.video);
+    const thumb = id ? `style="background-image:url('https://i.ytimg.com/vi/${id}/hqdefault.jpg')"` : '';
+    h += `<article class="card ex${doneAll ? ' done' : ''}" data-ex="${esc(ex.id)}" style="animation-delay:${xi * 40}ms"><div class="exhead">
+      <button class="thumb${id ? '' : ' q'}" data-act="video" ${thumb} aria-label="Videó"><i>${id ? ICON.play : ICON.search}</i></button>
+      <div class="exinfo"><h3>${esc(ex.name)}</h3><div class="chips"><span>${ex.sets}×${esc(ex.reps)}</span><span>${esc(fmtW(ex))}</span>${ex.rest ? `<span>⏱ ${ex.rest} mp</span>` : ''}${ex.up ? '<span class="up">⬆ emelhetsz</span>' : ''}</div></div>
+      ${isBW(ex) ? '' : `<button class="uchip" data-act="exunit" title="Mértékegység ennél a gyakorlatnál">${exU(ex) === 'lb' ? 'font' : 'kg'}</button>`}</div>`;
     if (ex.note) h += `<div class="note">${esc(ex.note)}</div>`;
     if (editMode) {
       h += `<div class="tools"><button class="btn s" data-act="up" data-i="${xi}" ${xi ? '' : 'disabled'}>↑</button><button class="btn s" data-act="down" data-i="${xi}" ${xi < day.ex.length - 1 ? '' : 'disabled'}>↓</button><span class="grow"></span><button class="btn s" data-act="exedit" data-i="${xi}">✎ Módosítás</button></div>`;
     } else {
-      h += '<div class="sets">';
+      h += `<div class="dots">${rows.map((s) => `<i class="${s.d ? 'on' : ''}${s.wu ? ' wu' : ''}"></i>`).join('')}</div><div class="sets">`;
       let no = 0;
       rows.forEach((s, i) => {
         const w = isBW(ex) ? (s.d ? s.w : S.settings.bw) : s.w;
-        h += `<div class="set${s.d ? ' d' : ''}${s.wu ? ' wu' : ''}" data-i="${i}"><div class="n" title="${s.wu ? 'bemelegítő' : ''}">${s.wu ? 'B' : (++no) + '.'}</div>
-          <label><input class="w" type="number" inputmode="decimal" step="any" value="${w == null ? '' : toU(w, exU(ex))}" placeholder="${isBW(ex) ? 'testsúly' : ''}"><span>${exU(ex)}</span></label>
+        h += `<div class="sw"><div class="set${s.d ? ' d' : ''}${s.wu ? ' wu' : ''}" data-i="${i}"><div class="n" title="${s.wu ? 'bemelegítő' : ''}">${s.wu ? 'B' : (++no) + '.'}</div>
+          <label><input class="w" type="number" inputmode="decimal" step="any" value="${w == null ? '' : toU(w, exU(ex))}" placeholder="${isBW(ex) ? 'súly' : '–'}"><span>${exU(ex)}</span></label>
           <label><input class="r" type="number" inputmode="numeric" value="${s.r != null ? s.r : ''}" placeholder="${s.wu ? '12' : esc(ex.reps)}"><span>ism.</span></label>
-          <button class="ok" data-act="tick">✓</button></div>`;
+          <button class="ok" data-act="tick" aria-label="Kész">${ICON.check}</button></div></div>`;
       });
-      h += `</div><div class="addset"><button data-act="addwu">+ bemelegítő</button><button data-act="addset">+ sorozat</button>${rows.some((s) => s.x) ? '<button data-act="delset">− utolsó hozzáadott</button>' : ''}</div>`;
+      h += `</div><div class="addset"><button data-act="addwu">+ bemelegítő</button><button data-act="addset">+ sorozat</button>${rows.length ? '<button class="m" data-act="delset">− sorozat</button>' : ''}</div>`;
     }
-    h += '</div>';
+    h += '</article>';
   });
-  if (editMode) h += `<button class="btn p" data-act="exnew" style="width:100%">+ Új gyakorlat</button>`;
-  else if (c) h += `<div class="row" style="margin-top:6px"><button class="btn w" data-act="discard">Elvetés</button><span class="grow"></span><button class="btn p" data-act="finish">Edzés befejezése</button></div><p class="sub" style="margin-top:8px">Elkezdve: ${new Date(c.t0).toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' })}</p>`;
+  if (editMode) h += `<button class="btn p big" data-act="exnew">+ Új gyakorlat</button>`;
+  else if (day.ex.length) {
+    h += `<p class="hint">Tipp: egy sorozatot balra húzva törölhetsz.</p>`;
+    if (c) h += `<button class="btn p big" data-act="finish">Edzés befejezése</button><div class="row" style="justify-content:center;margin-top:10px"><button class="btn s w" data-act="discard">Edzés elvetése</button></div>`;
+  }
   return h;
 }
+setInterval(() => { const el = $('elapsed'), d = dayById(S.tab); if (el && d && S.cur[d.id]) el.textContent = elapsed(S.cur[d.id].t0); }, 20000);
+
+// sorozat törlése balra húzással
+function bindSwipe() {
+  document.querySelectorAll('.set').forEach((row) => {
+    let x0 = null, y0 = 0, dx = 0, mode = null;
+    row.addEventListener('pointerdown', (e) => { if (e.target.closest('button')) return; x0 = e.clientX; y0 = e.clientY; dx = 0; mode = null; });
+    row.addEventListener('pointermove', (e) => {
+      if (x0 == null) return;
+      const mx = e.clientX - x0, my = e.clientY - y0;
+      if (!mode) { if (Math.abs(mx) > 10 && Math.abs(mx) > Math.abs(my)) { mode = 'x'; row.setPointerCapture(e.pointerId); row.style.transition = 'none'; row.parentNode.classList.add('swiping'); if (document.activeElement) document.activeElement.blur(); } else if (Math.abs(my) > 10) { x0 = null; return; } }
+      if (mode === 'x') { dx = Math.min(0, mx); row.style.transform = `translateX(${dx}px)`; }
+    });
+    const end = () => {
+      if (x0 == null) return; x0 = null;
+      if (mode !== 'x') return;
+      row.style.transition = '';
+      if (dx >= -90) setTimeout(() => row.parentNode.classList.remove('swiping'), 200);
+      if (dx < -90) { row.style.transform = 'translateX(-110%)'; if (navigator.vibrate) navigator.vibrate(15); setTimeout(() => delRow(row), 200); }
+      else row.style.transform = '';
+    };
+    row.addEventListener('pointerup', end); row.addEventListener('pointercancel', end);
+  });
+}
+function delRow(row) {
+  const day = dayById(S.tab), ex = day && day.ex.find((x) => x.id === row.closest('[data-ex]').dataset.ex);
+  if (!ex) return;
+  curArr(day, ex).splice(+row.dataset.i, 1);
+  save(); render(); toast('Sorozat törölve');
+}
+
+// befejezés: összegzés és ünneplés
+function celebrate(sess) {
+  let sets = 0, vol = 0;
+  for (const it of sess.items) for (const z of it.sets) if (!z.wu) { sets++; if (!it.bw) vol += (z.w || 0) * (z.r || 0) * (it.pair ? 2 : 1); }
+  const mins = Math.max(1, Math.round((sess.date - sess.t0) / 60000));
+  $('done').innerHTML = `<div style="font-size:44px">🏆</div><h2>Szép munka!</h2><div class="meta">${esc(sess.dayName)} kész, elmentve a naplóba.</div>
+    <div class="big3"><div><b>${sets}</b>sorozat</div><div><b>${Math.round(toU(vol))}</b>${unit()} megmozgatva</div><div><b>${mins}</b>perc</div></div>
+    <button class="btn p big" onclick="this.closest('dialog').close()">Köszi!</button>`;
+  $('done').showModal();
+  const cols = ['#4a5d8f', '#7486ba', '#c9cfdc', '#ffffff', '#2f3b60', '#aab4cf'];
+  for (let i = 0; i < 70; i++) {
+    const p = document.createElement('i'); p.className = 'conf';
+    p.style.left = Math.random() * 100 + 'vw'; p.style.background = cols[i % cols.length];
+    p.style.animationDuration = (1.8 + Math.random() * 1.6) + 's'; p.style.animationDelay = Math.random() * 0.4 + 's';
+    $('done').appendChild(p); setTimeout(() => p.remove(), 4000);
+  }
+  if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
+}
 function renderLog() {
-  if (!S.sessions.length) return `<h2>Napló</h2><div class="empty">Még nincs elmentett edzés. Pipáld ki a sorozatokat, majd nyomd meg az „Edzés befejezése” gombot.</div>`;
-  let h = '<h2>Napló</h2><p class="sub">' + S.sessions.length + ' edzés</p>';
+  if (!S.sessions.length) return `<div class="empty">Még nincs elmentett edzés. Pipáld ki a sorozatokat, majd nyomd meg az „Edzés befejezése” gombot.</div>`;
+  let h = '<p class="sub">' + S.sessions.length + ' edzés</p>';
   for (const s of S.sessions) {
     const mins = s.t0 ? Math.round((s.date - s.t0) / 60000) : 0;
     h += `<div class="card log"><div class="h"><b>${esc(fmtDate(s.date))} · ${esc(s.dayName || s.day)}</b>${mins ? `<span class="meta">${mins} perc</span>` : ''}<button class="btn s w" data-act="logdel" data-id="${esc(s.id)}">🗑</button></div><ul>`;
@@ -408,10 +592,10 @@ function chartSvg(pts, label) {
   const line = pts.map((p, i) => `${X(i).toFixed(1)},${Y(p.y).toFixed(1)}`).join(' ');
   const r = (v) => Math.round(v * 10) / 10;
   return `<div class="card"><b>${esc(label)}</b><svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(label)}">
-    <line x1="${L}" x2="${W - R}" y1="${Y(mx)}" y2="${Y(mx)}" stroke="#e2e0db"/><line x1="${L}" x2="${W - R}" y1="${Y(mn)}" y2="${Y(mn)}" stroke="#e2e0db"/>
+    <line x1="${L}" x2="${W - R}" y1="${Y(mx)}" y2="${Y(mx)}" stroke="var(--line)"/><line x1="${L}" x2="${W - R}" y1="${Y(mn)}" y2="${Y(mn)}" stroke="var(--line)"/>
     <text x="${L - 4}" y="${Y(mx) + 4}" text-anchor="end">${r(mx)}</text><text x="${L - 4}" y="${Y(mn) + 4}" text-anchor="end">${r(mn)}</text>
-    <polyline points="${line}" fill="none" stroke="#44587a" stroke-width="2.5" stroke-linejoin="round"/>
-    ${pts.map((p, i) => `<circle cx="${X(i)}" cy="${Y(p.y)}" r="3.5" fill="#44587a"><title>${esc(p.l)}: ${r(p.y)}</title></circle>`).join('')}
+    <path d="M${X(0)},${H - B} L${line.replace(/ /g, ' L')} L${X(pts.length - 1)},${H - B} Z" fill="var(--soft)"/><polyline points="${line}" fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-linejoin="round"/>
+    ${pts.map((p, i) => `<circle cx="${X(i)}" cy="${Y(p.y)}" r="3.5" fill="var(--acc)"><title>${esc(p.l)}: ${r(p.y)}</title></circle>`).join('')}
     <text x="${L}" y="${H - 5}">${esc(pts[0].l)}</text>${pts.length > 1 ? `<text x="${W - R}" y="${H - 5}" text-anchor="end">${esc(pts[pts.length - 1].l)}</text>` : ''}
   </svg></div>`;
 }
@@ -420,9 +604,9 @@ function renderChart() {
   for (const s of S.sessions) for (const it of s.items) if (!names.has(it.ex)) names.set(it.ex, it.name);
   for (const d of S.plan.days) for (const ex of d.ex) names.set(ex.id, ex.name);
   const used = [...names].filter(([id]) => S.sessions.some((s) => s.items.some((it) => it.ex === id)));
-  if (!used.length) return `<h2>Grafikon</h2><div class="empty">A grafikon az első elmentett edzés után jelenik meg.</div>`;
+  if (!used.length) return `<div class="empty">A grafikon az első elmentett edzés után jelenik meg.</div>`;
   if (!used.some(([id]) => id === chartEx)) chartEx = used[0][0];
-  let h = `<h2>Grafikon</h2><p class="sub">Gyakorlatonként, edzésről edzésre</p><select id="chartsel">${used.map(([id, n]) => `<option value="${esc(id)}"${id === chartEx ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select><div style="height:10px"></div>`;
+  let h = `<p class="sub">Gyakorlatonként, edzésről edzésre</p><select id="chartsel">${used.map(([id, n]) => `<option value="${esc(id)}"${id === chartEx ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select><div style="height:10px"></div>`;
   const rows = S.sessions.slice().reverse().map((s) => { const it = s.items.find((z) => z.ex === chartEx); return { s, it: it && Object.assign({}, it, { sets: it.sets.filter((z) => !z.wu) }) }; }).filter((x) => x.it && x.it.sets.length);
   const lbl = (s) => new Date(s.date).toLocaleDateString('hu-HU', { month: 'numeric', day: 'numeric' });
   const bw = rows.every((x) => x.it.bw || x.it.sets.every((z) => z.w == null));
@@ -437,7 +621,7 @@ function renderChart() {
   return h;
 }
 function renderSettings() {
-  let h = `<h2>Beállítások</h2><div class="card f">
+  let h = `<div class="card f">
     <div class="row"><span class="grow">Alap mértékegység<br><span class="meta">gyakorlatonként a kártyán átállítható</span></span><div class="seg"><button data-act="unit" data-u="kg" class="${unit() === 'kg' ? 'on' : ''}">kg</button><button data-act="unit" data-u="lb" class="${unit() === 'lb' ? 'on' : ''}">font</button></div></div>
     <label>Testsúly (${unit()})${S.settings.bwAt ? ', megadva: ' + new Date(S.settings.bwAt).toLocaleDateString('hu-HU') : ''}<input type="number" id="bw" step="any" min="0" inputmode="decimal" value="${S.settings.bw == null ? '' : toU(S.settings.bw)}"></label>
     <label>Alap pihenőidő (mp), ha a gyakorlatnál nincs megadva<input type="number" id="defrest" min="0" step="5" value="${S.settings.rest}"></label></div>`;
@@ -466,9 +650,11 @@ function renderSettings() {
 }
 
 // ---------- események ----------
-$('tabs').addEventListener('click', (e) => {
-  const b = e.target.closest('button[data-tab]'); if (!b) return;
-  S.tab = b.dataset.tab; editMode = false; save(false); render(); window.scrollTo(0, 0);
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-tab],button[data-nav]'); if (!b) return;
+  if (b.dataset.tab) { S.tab = S.lastDay = b.dataset.tab; }
+  else { const v = b.dataset.nav; S.tab = v === 'train' ? (dayById(S.lastDay) ? S.lastDay : (S.plan.days[0] || {}).id || 'set') : v; }
+  editMode = false; save(false); render(); window.scrollTo({ top: 0, behavior: 'smooth' });
 });
 $('main').addEventListener('click', (e) => {
   const b = e.target.closest('[data-act]'); if (!b) return;
@@ -485,6 +671,7 @@ $('main').addEventListener('click', (e) => {
       s.w = fromU(wv, exU(ex)); s.r = rv === '' ? (s.wu ? 12 : range(ex.reps)[0]) : +rv;
       if (isBW(ex) && !s.wu) setBW(s.w);
       s.d = s.d ? 0 : 1;
+      if (navigator.vibrate) navigator.vibrate(12);
       save(); render();
       if (s.d) { const rr = ex.rest == null ? S.settings.rest : ex.rest; startRest(s.wu ? Math.min(rr, 60) : rr); }
       break;
@@ -492,7 +679,9 @@ $('main').addEventListener('click', (e) => {
     case 'finish': finishDay(day); break;
     case 'addset': { const a = curArr(day, ex); const last = a.filter((x) => !x.wu).pop(); a.push({ d: 0, x: 1, w: last ? last.w : workW(ex), r: null }); save(); render(); break; }
     case 'addwu': { const a = curArr(day, ex); const k = a.filter((x) => x.wu).length; a.splice(k, 0, { d: 0, wu: 1, x: 1, w: wuW(ex), r: null }); save(); render(); break; }
-    case 'delset': { const a = curArr(day, ex); for (let k = a.length - 1; k >= 0; k--) if (a[k].x) { a.splice(k, 1); break; } save(); render(); break; }
+    case 'delset': { const a = curArr(day, ex); let k = a.length - 1; while (k > 0 && a[k].d) k--; if (k >= 0) a.splice(k, 1); save(); render(); break; }
+    case 'video': openVideo(ex); break;
+    case 'start': { S.cur[day.id] = { t0: Date.now(), sets: {} }; save(); render(); toast('Indulhat! 💪'); break; }
     case 'discard': if (confirm('Elveted a mostani edzést? A kipipált sorozatok törlődnek.')) { delete S.cur[day.id]; save(); render(); } break;
     case 'up': case 'down': { const j = act === 'up' ? i - 1 : i + 1; [day.ex[i], day.ex[j]] = [day.ex[j], day.ex[i]]; save(); render(); break; }
     case 'exedit': openEx(day, i); break;
@@ -536,7 +725,7 @@ function importFile(f) {
     const d = JSON.parse(txt);
     if (!d || !d.plan || !Array.isArray(d.plan.days)) throw new Error('nem edzésnapló fájl');
     if (!confirm('Betöltöd a fájlt? A terv lecserélődik, a napló bejegyzései hozzáadódnak a meglévőkhöz.')) return;
-    S.plan = d.plan; if (d.settings) S.settings = Object.assign(S.settings, d.settings);
+    S.plan = upgradePlan(d.plan); if (d.settings) S.settings = Object.assign(S.settings, d.settings);
     const have = new Set(S.sessions.map((s) => s.id));
     for (const s of d.sessions || []) if (!have.has(s.id)) { S.sessions.push(s); if (Gym.cloud) Gym.cloud.addSession(clone(s)).catch(console.warn); }
     S.sessions.sort((a, b) => b.date - a.date);

@@ -225,7 +225,7 @@ button.chip{border:0;font:inherit;font-size:12px;font-weight:700;padding:3px 8px
 <script>
 'use strict';
 const KEY = 'edzesnaplo.v1';
-const APPVER = '2026-11-14 11:04 UTC';
+const APPVER = '2026-11-14 11:09 UTC';
 const LB = 2.20462;
 const YT = (id) => 'https://www.youtube.com/shorts/' + id;
 
@@ -360,13 +360,25 @@ function load() {
   return fresh();
 }
 // régebbi terv kiegészítése: a kezdő gyakorlatok új videói és keresőszavai
-const vidFor = (ex) => (ex.q && (VIDMAP[ex.q] || VIDMAP[ex.q.replace(/ form$/, '')])) || ((LIBRARY.find((l) => l.name === ex.name) || {}).video) || '';
+// videó a gyakorlathoz: keresőszó, pontos név, végül a névben közös szavak alapján a gyakorlattárból
+const STOPW = new Set(['sulyzoval', 'gepen', 'ruddal', 'kabel', 'kabelen', 'kabeles', 'egykezes', 'ketkezes', 'kezzel', 'fogassal', 'padon', 'allva', 'ulve', 'ulo', 'fekvo', 'gepi', 'oldalankent', 'kotellel']);
+const words = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/[^a-z0-9]+/).filter((w) => w.length >= 4 && !STOPW.has(w));
+function libMatch(name) {
+  const nw = words(name); let best = null, bs = 0;
+  for (const l of LIBRARY) {
+    const lw = words(l.name), common = lw.filter((w) => nw.includes(w)).length;
+    const sc = common === lw.length ? common + 1 : common; // a gyakorlattári név minden szava szerepel
+    if (sc > bs) { bs = sc; best = l; }
+  }
+  return bs >= 2 || (bs === 1 && words(best.name).some((w) => w.length >= 6 && words(name).includes(w))) ? best : null;
+}
+const vidFor = (ex) => (ex.q && (VIDMAP[ex.q] || VIDMAP[ex.q.replace(/ form$/, '')])) || ((LIBRARY.find((l) => l.name === ex.name) || libMatch(ex.name) || {}).video) || '';
 function upgradePlan(plan) {
   const def = new Map(); for (const k in PLANS) for (const d of PLANS[k].plan.days) for (const ex of d.ex) def.set(ex.id, ex);
   for (const d of plan.days) for (const ex of d.ex) {
     // B nap lat gép: egykezesből két kezes (közös köteg) – a súly duplázódik, a haladás megmarad
     if (ex.id === 'b2' && ex.name === 'Lat gép, egykezes lehúzás' && ex.side) { ex.name = 'Lat gép, lehúzás két kézzel'; ex.side = false; if (ex.w != null) ex.w = Math.round(ex.w * 2 * 2) / 2; ex.q = 'lat pulldown machine two handles'; ex.note = ex.note || 'Közös súlyköteg, két külön fogantyú: egyszerre húzd mindkettőt.'; ex.up = false; }
-    if (!ex.video) ex.video = vidFor(ex);
+    if (!ex.video || /N8_6r6olsVU/.test(ex.video)) ex.video = vidFor(ex);
     const x = def.get(ex.id); if (!x) continue; if (!ex.video && x.video) ex.video = x.video; if (!ex.q && x.q) ex.q = x.q; }
   return plan;
 }
@@ -733,6 +745,8 @@ let BADV = {}; try { BADV = JSON.parse(localStorage.getItem('edzesnaplo.badv') |
 BADV['N8_6r6olsVU'] = 1;
 const ytRaw = (u) => { const m = String(u || '').match(/(?:shorts\/|v=|youtu\.be\/|embed\/)([\w-]{11})/); return m ? m[1] : null; };
 const ytId = (u) => { const id = ytRaw(u); return id && !BADV[id] ? id : null; };
+// a gyakorlat tényleges videója: a saját link, ha működik, különben a gyakorlattár ellenőrzött videója
+const exVid = (ex) => ytId(ex.video) ? ex.video : (ytId(vidFor(ex)) ? vidFor(ex) : ex.video);
 const checked = {};
 function checkThumbs() {
   document.querySelectorAll('.thumb[data-vid]').forEach((el) => {
@@ -754,10 +768,10 @@ const ICON = {
   gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>'
 };
 function openVideo(ex) {
-  const id = ytId(ex.video);
+  const id = ytId(exVid(ex));
   if (!id) { window.open(ytRaw(ex.video) ? ytSearch(ex) : (ex.video || ytSearch(ex)), '_blank', 'noopener'); return; }
   $('vidframe').src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&playsinline=1&rel=0&modestbranding=1`;
-  $('vidyt').href = ex.video;
+  $('vidyt').href = exVid(ex);
   $('viddlg').showModal();
 }
 $('vidx').onclick = () => $('viddlg').close();
@@ -804,7 +818,7 @@ function renderDay(day) {
     const rows = setRows(day, ex);
     const work = rows.filter((s) => !s.wu);
     const doneAll = work.length > 0 && work.every((s) => s.d);
-    const id = ytId(ex.video);
+    const id = ytId(exVid(ex));
     const thumb = id ? `style="background-image:url('https://i.ytimg.com/vi/${id}/hqdefault.jpg')"` : '';
     h += `<article class="card ex${doneAll ? ' done' : ''}" data-ex="${esc(ex.id)}" style="animation-delay:${xi * 40}ms"><div class="exhead">
       <button class="thumb${id ? '' : ' q'}" data-act="video" ${id ? `data-vid="${id}"` : ''} ${thumb} aria-label="Videó"><i>${id ? ICON.play : ICON.search}</i></button>

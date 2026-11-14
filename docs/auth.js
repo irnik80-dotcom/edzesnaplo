@@ -76,7 +76,7 @@ async function start() {
       };
       Gym.setWho(u.displayName || u.email || 'ismeretlen');
       try { await Gym.attach(api, u.uid); }
-      catch (e) { console.error(e); Gym.setWho(u.displayName || u.email, 'A felhős adatok betöltése nem sikerült. Ellenőrizd, hogy a Firestore-szabályok közé bekerült-e a gym rész.'); }
+      catch (e) { console.error(e); Gym.setWho(u.displayName || u.email, 'A felhős adatok betöltése nem sikerült (' + ((e && (e.code || e.message)) || 'ismeretlen hiba') + ').'); }
     } else {
       if (attached) { attached = null; Gym.detach(); }
       Gym.setWho(null);

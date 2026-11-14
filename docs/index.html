@@ -146,6 +146,9 @@ button.chip{border:0;font:inherit;font-size:12px;font-weight:700;padding:3px 8px
 #done .big3 b{display:block;font-size:22px;color:var(--ink)}
 .conf{position:fixed;top:-12px;width:9px;height:14px;border-radius:2px;z-index:40;pointer-events:none;animation:fall linear forwards}
 @keyframes fall{to{transform:translateY(105vh) rotate(720deg);opacity:.2}}
+h1.pass{cursor:pointer}
+h1.pass.warn{color:#c9653a}
+h1.pass.exp{color:var(--del)}
 .who{float:right;margin-top:2px;min-width:38px;height:38px;border-radius:999px;border:0;background:var(--grad);color:#fff;font-weight:800;padding:0 12px}
 .who.out{background:var(--card);color:var(--acc);border:1px solid var(--line);font-size:13px}
 .prev{font-size:12.5px;color:var(--mute);margin-top:10px;padding:7px 10px;border-radius:10px;background:var(--soft)}
@@ -225,7 +228,7 @@ button.chip{border:0;font:inherit;font-size:12px;font-weight:700;padding:3px 8px
 <script>
 'use strict';
 const KEY = 'edzesnaplo.v1';
-const APPVER = '2026-11-14 11:37 UTC';
+const APPVER = '2026-11-14 17:37 UTC';
 const LB = 2.20462;
 const YT = (id) => 'https://www.youtube.com/shorts/' + id;
 
@@ -385,6 +388,7 @@ function upgradePlan(plan) {
 for (const k in PLANS) upgradePlan(PLANS[k].plan);
 let S = load();
 upgradePlan(S.plan);
+if (S.settings.pass === undefined) S.settings.pass = '2026-11-18';
 if (S.settings.bw && !S.settings.bwLog) S.settings.bwLog = [{ t: S.settings.bwAt || Date.now(), kg: S.settings.bw }];
 let editMode = false;
 let chartEx = '';
@@ -417,6 +421,7 @@ Gym.attach = async (api, uid) => {
   if (d && d.plan && d.plan.days) {
     S.plan = upgradePlan(d.plan);
     S.settings = Object.assign({ unit: 'kg', rest: 90 }, d.settings || {});
+    if (S.settings.pass === undefined) S.settings.pass = '2026-11-18';
     S.cur = d.cur || {};
   }
   S.sessions = cs.sort((a, b) => b.date - a.date);
@@ -782,6 +787,15 @@ $('vidx').onclick = () => $('viddlg').close();
 $('viddlg').addEventListener('close', () => { $('vidframe').src = 'about:blank'; });
 
 // ---------- megjelenítés ----------
+// bérlet: hány nap van még hátra (a lejárat napja még érvényes)
+function passInfo() {
+  const v = S.settings.pass; if (!v) return null;
+  const [y, m, d] = v.split('-').map(Number); const end = new Date(y, m - 1, d);
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  const n = Math.round((end - t) / 86400000);
+  const txt = n > 1 ? `Bérlet: még ${n} nap` : n === 1 ? 'Bérlet: holnap lejár' : n === 0 ? 'Bérlet: ma lejár!' : `Bérlet lejárt (${-n} napja)`;
+  return { n, txt, cls: n < 0 ? 'exp' : n <= 3 ? 'warn' : '' , end };
+}
 const firstName = () => (Gym.who || (Gym.pending && Gym.lastWho()) || '').split(/[\s@]/)[0];
 function render() {
   if (!S.plan.days.length && S.tab !== 'set') S.tab = 'set';
@@ -795,7 +809,7 @@ function render() {
   const today = new Date().toLocaleDateString('hu-HU', { weekday: 'long', month: 'long', day: 'numeric' });
   const titles = { log: 'Napló', chart: 'Haladás', set: 'Beállítások', admin: ADM && Gym.admin ? esc(((Gym.admin.find((u) => u.uid === ADM.uid) || {}).name) || 'Felhasználó') : 'Admin' };
   const acct = window.GYM_AUTH ? (Gym.who ? `<button class="who" data-nav="set" title="Belépve: ${esc(Gym.who)}">${esc(Gym.who.slice(0, 1).toUpperCase())}</button>` : Gym.pending ? '' : '<button class="who out" data-nav="set">Belépés</button>') : '';
-  $('hdr').innerHTML = acct + `<div class="date">${esc(today)}</div><h1>${day ? (firstName() ? 'Hajrá, ' + esc(firstName()) + '!' : 'Mai edzés') : titles[S.tab]}</h1>` +
+  $('hdr').innerHTML = acct + `<div class="date">${esc(today)}</div><h1${day && passInfo() ? ` class="pass ${passInfo().cls}" data-nav="set" title="Bérlet érvényes: ${esc(S.settings.pass)}"` : ''}>${day ? (passInfo() ? esc(passInfo().txt) : firstName() ? 'Hajrá, ' + esc(firstName()) + '!' : 'Mai edzés') : titles[S.tab]}</h1>` +
     (day ? `<div class="seg2">${S.plan.days.map((x) => `<button data-tab="${esc(x.id)}" class="${x.id === S.tab ? 'on' : ''}">${esc(x.tab || x.name)}</button>`).join('')}</div>` : '');
   $('main').innerHTML = day ? renderDay(day) : S.tab === 'log' ? renderLog() : S.tab === 'chart' ? renderChart() : S.tab === 'admin' ? renderAdmin() : renderSettings();
   keepAwake(!!(day && started(S.cur[day.id])));
@@ -1035,6 +1049,8 @@ function renderSettings() {
   let h = `<div class="card f">
     <div class="row"><span class="grow">Alap mértékegység<br><span class="meta">gyakorlatonként a kártyán átállítható</span></span><div class="seg"><button data-act="unit" data-u="kg" class="${unit() === 'kg' ? 'on' : ''}">kg</button><button data-act="unit" data-u="lb" class="${unit() === 'lb' ? 'on' : ''}">font</button></div></div>
     <label>Testsúly (${unit()})${S.settings.bwAt ? ', megadva: ' + new Date(S.settings.bwAt).toLocaleDateString('hu-HU') : ''}<input type="number" id="bw" step="any" min="0" inputmode="decimal" value="${S.settings.bw == null ? '' : toU(S.settings.bw)}"></label>
+    <label>Bérlet érvényes eddig (a lejárat napja még jó)<input type="date" id="pass" value="${esc(S.settings.pass || '')}"></label>
+    <div class="row"><button class="btn s" data-act="passadd" data-m="1">+1 hónap</button><button class="btn s" data-act="passadd" data-m="3">+3 hónap</button>${S.settings.pass ? '<span class="grow"></span><button class="btn s w" data-act="passdel">Nincs bérlet</button>' : ''}</div>
     <label>Heti cél (edzés / hét)<input type="number" id="goal" min="1" max="7" inputmode="numeric" value="${S.settings.goal || 3}"></label>
     <label>Alap pihenőidő (mp), ha a gyakorlatnál nincs megadva<input type="number" id="defrest" min="0" step="5" value="${S.settings.rest}"></label></div>`;
   h += `<div class="card" id="acct" ${window.GYM_AUTH ? '' : 'hidden'}><b>Fiók</b>
@@ -1068,7 +1084,7 @@ function renderSettings() {
 
 // ---------- események ----------
 document.addEventListener('click', (e) => {
-  const b = e.target.closest('button[data-tab],button[data-nav]'); if (!b) return;
+  const b = e.target.closest('button[data-tab],button[data-nav],h1[data-nav]'); if (!b) return;
   if (b.dataset.tab) { S.tab = S.lastDay = b.dataset.tab; }
   else { const v = b.dataset.nav; S.tab = v === 'train' ? (dayById(S.lastDay) ? S.lastDay : (S.plan.days[0] || {}).id || 'set') : v; }
   editMode = false; save(false); render(); window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1122,6 +1138,13 @@ $('main').addEventListener('click', (e) => {
     case 'demo': { const n = genDemo(); save(); render(); toast(n + ' teszt edzés hozzáadva'); break; }
     case 'demodel': { const del = S.sessions.filter((x) => x.demo); S.sessions = S.sessions.filter((x) => !x.demo); if (Gym.cloud) for (const x of del) Gym.cloud.delSession(x.id).catch(console.warn); save(); render(); toast('Teszt edzések törölve'); break; }
     case 'hardreload': (async () => { try { const rs = await navigator.serviceWorker.getRegistrations(); for (const r of rs) await r.update(); const ks = await caches.keys(); for (const k of ks) await caches.delete(k); } catch (x) {} location.reload(); })(); break;
+    case 'passadd': {
+      // hosszabbítás a mostani lejárattól (ha már lejárt, mától)
+      const pi = passInfo(), base = pi && pi.n >= 0 ? pi.end : new Date(); const d = new Date(base); d.setMonth(d.getMonth() + +b.dataset.m);
+      S.settings.pass = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      save(); render(); toast('Bérlet érvényes: ' + S.settings.pass.replace(/-/g, '.') + '.'); break;
+    }
+    case 'passdel': S.settings.pass = ''; save(); render(); break;
     case 'admback': ADM = null; render(); break;
     case 'admview': ADM.view = b.dataset.v; render(); break;
   }
@@ -1129,6 +1152,7 @@ $('main').addEventListener('click', (e) => {
 $('main').addEventListener('change', (e) => {
   const t = e.target;
   if (t.id === 'chartsel') { chartEx = t.value; render(); return; }
+  if (t.id === 'pass') { S.settings.pass = t.value || ''; save(); render(); return; }
   if (t.id === 'goal') { S.settings.goal = Math.max(1, Math.min(7, +t.value || 3)); save(); return; }
   if (t.id === 'bw') { setBW(fromU(t.value)); save(); render(); return; }
   if (t.id === 'defrest') { S.settings.rest = Math.max(0, +t.value || 0); save(); return; }

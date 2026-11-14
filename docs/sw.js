@@ -1,6 +1,6 @@
 // Offline működés: az app fájljai és a Firebase-könyvtárak gyorsítótárban.
 // Új verzió kiadásakor a VER értékét növeld (a build-site.mjs ezt automatikusan megteszi).
-const VER = 'gym-202611141101';
+const VER = 'gym-202611141104';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './auth.js', './firebase-config.js'];
 
 self.addEventListener('install', (e) => {
@@ -14,7 +14,8 @@ self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   if (u.origin === location.origin) {
     // saját fájlok: előbb a hálózat (friss verzió), offline a gyorsítótár
-    e.respondWith(fetch(e.request).then((r) => { const c = r.clone(); caches.open(VER).then((x) => x.put(e.request, c)); return r; })
+    // a böngésző HTTP-gyorsítótárát megkerülve mindig a legfrissebb verziót kérjük
+    e.respondWith(fetch(e.request, { cache: 'no-cache' }).then((r) => { const c = r.clone(); caches.open(VER).then((x) => x.put(e.request, c)); return r; })
       .catch(() => caches.match(e.request, { ignoreSearch: true }).then((r) => r || caches.match('./index.html'))));
   } else if (u.hostname === 'www.gstatic.com') {
     // Firebase SDK: verziózott, nem változik

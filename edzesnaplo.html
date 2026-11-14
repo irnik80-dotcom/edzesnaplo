@@ -225,6 +225,7 @@ button.chip{border:0;font:inherit;font-size:12px;font-weight:700;padding:3px 8px
 <script>
 'use strict';
 const KEY = 'edzesnaplo.v1';
+const APPVER = 'build __BUILD__';
 const LB = 2.20462;
 const YT = (id) => 'https://www.youtube.com/shorts/' + id;
 
@@ -1038,6 +1039,7 @@ function renderSettings() {
   h += `<button class="btn" data-act="dnew" style="margin-top:10px">+ Új nap</button></div>`;
   h += `<div class="card"><b>Mentés</b><p class="meta">A terv és a napló letölthető fájlba, és onnan visszatölthető.</p>
     <div class="row"><button class="btn" data-act="export">Letöltés</button><label class="btn">Visszatöltés<input type="file" id="importfile" accept="application/json,.json" hidden></label></div></div>
+    <div class="card f"><b>Verzió</b><p class="meta">${esc(APPVER)}</p><button class="btn" data-act="hardreload">Frissítés most</button></div>
     <div class="card f"><b>Teszt adatok</b><p class="meta">12 véletlenszerű, már befejezett edzést generál az elmúlt 4 hétre az A/B/C napok alapján, fokozatosan növekvő súlyokkal, hogy kipróbálhasd a naplót és a grafikont. Egy gombbal törölhetők, a valódi edzéseidhez nem nyúl.</p>
     <div class="row"><button class="btn" data-act="demo">Teszt edzések generálása</button>${S.sessions.some((x) => x.demo) ? '<button class="btn w" data-act="demodel">Teszt edzések törlése</button>' : ''}</div></div>
     <div class="card f"><b>Kész tervek</b><p class="meta">A kiválasztott terv lecseréli a mostanit. A napló megmarad.</p>
@@ -1100,6 +1102,7 @@ $('main').addEventListener('click', (e) => {
     case 'admuser': ADM = { uid: b.dataset.uid, view: 'log', data: null }; render(); loadAdm(); break;
     case 'demo': { const n = genDemo(); save(); render(); toast(n + ' teszt edzés hozzáadva'); break; }
     case 'demodel': { const del = S.sessions.filter((x) => x.demo); S.sessions = S.sessions.filter((x) => !x.demo); if (Gym.cloud) for (const x of del) Gym.cloud.delSession(x.id).catch(console.warn); save(); render(); toast('Teszt edzések törölve'); break; }
+    case 'hardreload': (async () => { try { const rs = await navigator.serviceWorker.getRegistrations(); for (const r of rs) await r.update(); const ks = await caches.keys(); for (const k of ks) await caches.delete(k); } catch (x) {} location.reload(); })(); break;
     case 'admback': ADM = null; render(); break;
     case 'admview': ADM.view = b.dataset.v; render(); break;
   }
@@ -1199,7 +1202,19 @@ render();
 
 // a weboldalon: telepíthető app (service worker) és bejelentkezés
 const onSite = /github\.io$|^localhost$|^127\.0\.0\.1$/.test(location.hostname);
-if (onSite && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch((e) => console.warn(e));
+if (onSite && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((reg) => {
+    reg.update();
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update(); });
+  }).catch((e) => console.warn(e));
+  // új verzió érkezett: egyszer újratöltjük (edzés közben nem, hogy ne zavarjon)
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloaded) return; reloaded = true;
+    const busy = Object.keys(S.cur).length && !!document.querySelector('.set.d');
+    if (busy) toast('Új verzió elérhető – a következő megnyitáskor betöltődik'); else location.reload();
+  });
+}
 if (onSite) { window.GYM_AUTH = true; import('./auth.js').catch((e) => { console.warn('Bejelentkezés nem érhető el', e); window.GYM_AUTH = false; }); }
 </script>
 </body>

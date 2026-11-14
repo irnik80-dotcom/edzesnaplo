@@ -132,6 +132,10 @@ svg text{font-size:11px;fill:var(--mute)}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .seg button{border:0;background:var(--solid);padding:8px 16px}
 .seg button.on{background:var(--grad);color:#fff}
+.restgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
+.restgrid button{border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:12px 0;font-weight:800}
+.restgrid button.on{background:var(--grad);color:#fff;border-color:transparent}
+button.chip{border:0;font:inherit;font-size:12px;font-weight:700;padding:3px 8px;border-radius:8px;background:var(--soft);color:var(--acc)}
 .err{color:var(--del);font-size:14px;min-height:1em}
 #done{text-align:center;overflow:visible}
 #done h2{font-size:28px;margin:8px 0 4px}
@@ -162,23 +166,30 @@ svg text{font-size:11px;fill:var(--mute)}
 
 <dialog id="done"></dialog>
 
+<dialog id="restdlg">
+  <b id="restdlg-t">Pihenőidő</b>
+  <div class="restgrid" id="restgrid"></div>
+  <div class="row" style="margin-top:12px"><input type="number" id="restcustom" inputmode="numeric" placeholder="saját (mp)" style="flex:1;font:inherit;padding:11px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink)"><button class="btn p" id="restok">OK</button></div>
+  <div class="row" style="margin-top:10px;justify-content:flex-end"><button class="btn s" id="restx">Mégse</button></div>
+</dialog>
+
 <dialog id="exdlg">
   <form class="f" id="exform" method="dialog">
     <b id="exdlg-title">Gyakorlat</b>
     <label>Név<input type="text" name="name" required></label>
     <div class="two">
-      <label>Sorozat<input type="number" name="sets" min="1" max="20" required></label>
+      <label>Sorozat<input type="number" name="sets" min="1" max="20" step="1" inputmode="numeric" required></label>
       <label>Ismétlés (pl. 8–10)<input type="text" name="reps" required></label>
     </div>
     <div class="two">
       <label><span id="exdlg-w">Súly (kg), üresen: testsúly</span><input type="number" name="w" step="any" min="0" inputmode="decimal"></label>
-      <label>Pihenő (mp)<input type="number" name="rest" min="0" step="5"></label>
+      <label>Pihenő (mp)<input type="number" name="rest" min="0" step="any" inputmode="numeric"></label>
     </div>
     <label>Bemelegítő sorozatok (mindig megjelennek a munkasorozatok előtt)<input type="number" name="wu" min="0" max="5"></label>
     <label>Mértékegység ennél a gyakorlatnál<select name="unit"><option value="">Alapértelmezett</option><option value="kg">kg</option><option value="lb">font</option></select></label>
     <label class="ck"><input type="checkbox" name="pair"> Két súlyzó (2×)</label>
     <label class="ck"><input type="checkbox" name="side"> Oldalanként</label>
-    <label>Videó link<input type="url" name="video" placeholder="https://youtube.com/shorts/..."></label>
+    <label>Videó link<input type="text" name="video" inputmode="url" autocapitalize="off" placeholder="https://youtube.com/shorts/..."></label>
     <label>Megjegyzés<input type="text" name="note"></label>
     <div class="row">
       <button class="btn w" type="button" id="exdel">Törlés</button>
@@ -599,7 +610,7 @@ function renderDay(day) {
     const thumb = id ? `style="background-image:url('https://i.ytimg.com/vi/${id}/hqdefault.jpg')"` : '';
     h += `<article class="card ex${doneAll ? ' done' : ''}" data-ex="${esc(ex.id)}" style="animation-delay:${xi * 40}ms"><div class="exhead">
       <button class="thumb${id ? '' : ' q'}" data-act="video" ${id ? `data-vid="${id}"` : ''} ${thumb} aria-label="Videó"><i>${id ? ICON.play : ICON.search}</i></button>
-      <div class="exinfo"><h3>${esc(ex.name)}</h3><div class="chips"><span>${ex.sets}×${esc(ex.reps)}</span><span>${esc(fmtW(ex))}</span>${ex.rest ? `<span>⏱ ${ex.rest} mp</span>` : ''}${ex.up ? '<span class="up">⬆ emelhetsz</span>' : ''}</div></div>
+      <div class="exinfo"><h3>${esc(ex.name)}</h3><div class="chips"><span>${ex.sets}×${esc(ex.reps)}</span><span>${esc(fmtW(ex))}</span><button class="chip" data-act="restpick" title="Pihenőidő módosítása">⏱ ${ex.rest ? ex.rest + ' mp' : 'nincs pihenő'} ✎</button>${ex.up ? '<span class="up">⬆ emelhetsz</span>' : ''}</div></div>
       ${isBW(ex) ? '' : `<button class="uchip" data-act="exunit" title="Mértékegység ennél a gyakorlatnál">${exU(ex) === 'lb' ? 'font' : 'kg'}</button>`}</div>`;
     if (ex.note) h += `<div class="note">${esc(ex.note)}</div>`;
     if (editMode) {
@@ -626,6 +637,20 @@ function renderDay(day) {
   return h;
 }
 setInterval(() => { const el = $('elapsed'), d = dayById(S.tab); if (el && d && S.cur[d.id]) el.textContent = elapsed(S.cur[d.id].t0); }, 20000);
+
+// ---------- pihenőidő gyors módosítása ----------
+let restEx = null;
+function openRest(ex) {
+  restEx = ex;
+  $('restdlg-t').textContent = 'Pihenőidő: ' + ex.name;
+  $('restgrid').innerHTML = [0, 30, 45, 60, 75, 90, 120, 150, 180, 240].map((v) => `<button data-r="${v}" class="${(ex.rest || 0) === v ? 'on' : ''}">${v ? (v < 60 ? v + ' mp' : mmss(v)) : 'nincs'}</button>`).join('');
+  $('restcustom').value = '';
+  $('restdlg').showModal();
+}
+function setRest(v) { if (!restEx || isNaN(v)) return; restEx.rest = Math.max(0, Math.round(v)); $('restdlg').close(); save(); render(); toast('Pihenő: ' + (restEx.rest ? restEx.rest + ' mp' : 'nincs')); }
+$('restgrid').addEventListener('click', (e) => { const b = e.target.closest('[data-r]'); if (b) setRest(+b.dataset.r); });
+$('restok').onclick = () => { if ($('restcustom').value !== '') setRest(+$('restcustom').value); };
+$('restx').onclick = () => $('restdlg').close();
 
 // ---------- teszt adatok ----------
 function genDemo() {
@@ -847,6 +872,7 @@ $('main').addEventListener('click', (e) => {
     case 'addwu': { const a = curArr(day, ex); const k = a.filter((x) => x.wu).length; a.splice(k, 0, { d: 0, wu: 1, x: 1, w: wuW(ex), r: null }); save(); render(); break; }
     case 'delset': { const a = curArr(day, ex); let k = a.length - 1; while (k > 0 && a[k].d) k--; if (k >= 0) a.splice(k, 1); save(); render(); break; }
     case 'video': openVideo(ex); break;
+    case 'restpick': openRest(ex); break;
     case 'start': { S.cur[day.id] = { t0: Date.now(), sets: {} }; save(); render(); toast('Indulhat! 💪'); break; }
     case 'discard': if (confirm('Elveted a mostani edzést? A kipipált sorozatok törlődnek.')) { delete S.cur[day.id]; save(); render(); } break;
     case 'up': case 'down': { const j = act === 'up' ? i - 1 : i + 1; [day.ex[i], day.ex[j]] = [day.ex[j], day.ex[i]]; save(); render(); break; }

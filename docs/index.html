@@ -228,7 +228,7 @@ h1.pass.exp{color:var(--del)}
 <script>
 'use strict';
 const KEY = 'edzesnaplo.v1';
-const APPVER = '2026-11-14 21:51 UTC';
+const APPVER = '2026-11-14 22:04 UTC';
 const LB = 2.20462;
 const YT = (id) => 'https://www.youtube.com/shorts/' + id;
 
@@ -567,6 +567,31 @@ const anyDone = (c) => !!c && Object.values(c.sets || {}).some((a) => (a || []).
 const started = (c) => !!c && !!c.t0 && (!!c.go || anyDone(c));
 function startCur(day) { const c = S.cur[day.id] || (S.cur[day.id] = { sets: {} }); if (!started(c)) { c.t0 = Date.now(); c.go = 1; } return c; }
 function curSet(day, ex, i) { return curArr(day, ex)[i]; }
+// sorrend tanulása: az utolsó 3 edzés tényleges sorrendjének átlaga alapján
+function learnOrder(day) {
+  const recent = S.sessions.filter((x) => x.day === day.id && x.order && x.order.length > 1).slice(0, 3);
+  if (!recent.length) return false;
+  const n = day.ex.length, score = {}, seenIds = new Set();
+  day.ex.forEach((ex, i) => {
+    const fr = [];
+    // a legutóbbi edzés számít a legjobban (3 : 2 : 1 súlyozás)
+    recent.forEach((r, k) => { const p = r.order.indexOf(ex.id); if (p >= 0) fr.push([p / (r.order.length - 1), 3 - k]); });
+    if (fr.length) { seenIds.add(ex.id); score[ex.id] = fr.reduce((a, [f, w]) => a + f * w, 0) / fr.reduce((a, [, w]) => a + w, 0); }
+  });
+  const before = day.ex.map((x) => x.id).join();
+  const idx = new Map(day.ex.map((x, i) => [x.id, i]));
+  // a ténylegesen elvégzett gyakorlatok az átlagos sorrendjük szerint…
+  const seen = day.ex.filter((x) => seenIds.has(x.id)).sort((a, b) => (score[a.id] - score[b.id]) || (idx.get(a.id) - idx.get(b.id)));
+  // …a kimaradtak pedig a tervbeli előzőjük után maradnak
+  const out = seen.slice();
+  day.ex.forEach((x, i) => {
+    if (seenIds.has(x.id)) return;
+    let k = -1; for (let j = i - 1; j >= 0 && k < 0; j--) k = out.indexOf(day.ex[j]);
+    out.splice(k + 1, 0, x);
+  });
+  day.ex.splice(0, day.ex.length, ...out);
+  return day.ex.map((x) => x.id).join() !== before;
+}
 function finishDay(day) {
   const c = S.cur[day.id];
   const items = [];
@@ -588,12 +613,15 @@ function finishDay(day) {
   if (!items.length) { toast('Még nincs kipipált sorozat.'); return; }
   const sess = { id: newId(), date: Date.now(), t0: started(c) ? c.t0 : Date.now(), day: day.id, dayName: day.name, items };
   const prs = findPRs(sess); if (prs.length) sess.prs = prs;
+  if (c.order && c.order.length) sess.order = c.order.slice();
   S.sessions.unshift(sess);
+  const moved = S.settings.autoOrder !== false && learnOrder(day);
   delete S.cur[day.id];
   if (Gym.cloud) Gym.cloud.addSession(clone(sess)).catch((e) => console.warn(e));
   save(); keepAwake(false);
   render();
   celebrate(sess);
+  if (moved) setTimeout(() => toast('Sorrend igazítva ahhoz, ahogy edzel'), 2500);
 }
 
 // ---------- „Foglalt a gép”: hasonló gyakorlatok ----------
@@ -1056,6 +1084,7 @@ function renderSettings() {
     <label>Testsúly (${unit()})${S.settings.bwAt ? ', megadva: ' + new Date(S.settings.bwAt).toLocaleDateString('hu-HU') : ''}<input type="number" id="bw" step="any" min="0" inputmode="decimal" value="${S.settings.bw == null ? '' : toU(S.settings.bw)}"></label>
     <label>Bérlet érvényes eddig (a lejárat napja még jó)<input type="date" id="pass" value="${esc(S.settings.pass || '')}"></label>
     <div class="row"><button class="btn s" data-act="passadd" data-m="1">+1 hónap</button><button class="btn s" data-act="passadd" data-m="3">+3 hónap</button>${S.settings.pass ? '<span class="grow"></span><button class="btn s w" data-act="passdel">Nincs bérlet</button>' : ''}</div>
+    <label class="ck" style="color:var(--ink)"><input type="checkbox" id="autoorder" ${S.settings.autoOrder !== false ? 'checked' : ''}> Gyakorlatok sorrendje igazodjon ahhoz, ahogy ténylegesen edzek</label>
     <label>Heti cél (edzés / hét)<input type="number" id="goal" min="1" max="7" inputmode="numeric" value="${S.settings.goal || 3}"></label>
     <label>Alap pihenőidő (mp), ha a gyakorlatnál nincs megadva<input type="number" id="defrest" min="0" step="5" value="${S.settings.rest}"></label></div>`;
   h += `<div class="card" id="acct" ${window.GYM_AUTH ? '' : 'hidden'}><b>Fiók</b>
@@ -1108,7 +1137,10 @@ $('main').addEventListener('click', (e) => {
       const wv = row.querySelector('.w').value, rv = row.querySelector('.r').value;
       s.w = fromU(wv, exU(ex)); s.r = rv === '' ? (s.wu ? 12 : range(ex.reps)[0]) : +rv;
       if (isBW(ex) && !s.wu) setBW(s.w);
-      if (!s.d) startCur(day);
+      if (!s.d) {
+        const c0 = startCur(day), oid = ex.alt || ex.id;
+        (c0.order || (c0.order = [])).includes(oid) || c0.order.push(oid);
+      }
       s.d = s.d ? 0 : 1;
       if (navigator.vibrate) navigator.vibrate(12);
       save(); render();
@@ -1158,6 +1190,7 @@ $('main').addEventListener('change', (e) => {
   const t = e.target;
   if (t.id === 'chartsel') { chartEx = t.value; render(); return; }
   if (t.id === 'pass') { S.settings.pass = t.value || ''; save(); render(); return; }
+  if (t.id === 'autoorder') { S.settings.autoOrder = t.checked; save(); return; }
   if (t.id === 'goal') { S.settings.goal = Math.max(1, Math.min(7, +t.value || 3)); save(); return; }
   if (t.id === 'bw') { setBW(fromU(t.value)); save(); render(); return; }
   if (t.id === 'defrest') { S.settings.rest = Math.max(0, +t.value || 0); save(); return; }

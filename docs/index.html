@@ -208,7 +208,7 @@ const DEFAULT_PLAN = { days: [
   ]},
   { id: 'B', tab: 'B', name: 'B nap', sub: 'lat gép, mell, tricepsz', ex: [
     { id: 'b1', name: 'Negatív pull-up', sets: 3, reps: '3', w: null, rest: 120, video: YT('Ve6-GZJmd1M'), note: 'Lefelé 5 mp.' },
-    { id: 'b2', name: 'Lat gép, egykezes lehúzás', sets: 3, reps: '10', w: 17.5, side: true, rest: 90, video: 'https://www.youtube.com/watch?v=N8_6r6olsVU', q: 'single arm lat pulldown machine' },
+    { id: 'b2', name: 'Lat gép, egykezes lehúzás', sets: 3, reps: '10', w: 17.5, side: true, rest: 90, video: '', q: 'single arm lat pulldown machine' },
     { id: 'b3', name: 'Egykezes súlyzós evezés', sets: 3, reps: '10', w: 14, side: true, rest: 90, video: YT('4ZpQb1kX7Ew') },
     { id: 'b4', name: 'Lehúzás nyújtott karral', sets: 3, reps: '12', w: 15, rest: 60, video: '', q: 'straight arm pulldown cable' },
     { id: 'b5', name: 'Oldalemelés', sets: 3, reps: '15', w: 4, pair: true, rest: 60, video: YT('TM6se0vr1VA') },
@@ -518,7 +518,20 @@ function finishDay(day) {
 
 // ---------- megjelenítés ----------
 // ---------- videók ----------
-const ytId = (u) => { const m = String(u || '').match(/(?:shorts\/|v=|youtu\.be\/|embed\/)([\w-]{11})/); return m ? m[1] : null; };
+// a privát/törölt videók helyett keresés: a YouTube ilyenkor 120×90-es szürke képet ad
+let BADV = {}; try { BADV = JSON.parse(localStorage.getItem('edzesnaplo.badv') || '{}'); } catch (e) {}
+BADV['N8_6r6olsVU'] = 1;
+const ytRaw = (u) => { const m = String(u || '').match(/(?:shorts\/|v=|youtu\.be\/|embed\/)([\w-]{11})/); return m ? m[1] : null; };
+const ytId = (u) => { const id = ytRaw(u); return id && !BADV[id] ? id : null; };
+const checked = {};
+function checkThumbs() {
+  document.querySelectorAll('.thumb[data-vid]').forEach((el) => {
+    const id = el.dataset.vid; if (checked[id]) return; checked[id] = 1;
+    const im = new Image();
+    im.onload = () => { if (im.naturalWidth <= 120) { BADV[id] = 1; try { localStorage.setItem('edzesnaplo.badv', JSON.stringify(BADV)); } catch (e) {} render(); } };
+    im.src = `https://i.ytimg.com/vi/${id}/mqdefault.jpg`;
+  });
+}
 const ytSearch = (ex) => 'https://www.youtube.com/results?search_query=' + encodeURIComponent((ex.q || ex.name) + ' form shorts');
 const ICON = {
   play: '<svg viewBox="0 0 12 12"><path d="M2 1l9 5-9 5z"/></svg>',
@@ -532,7 +545,7 @@ const ICON = {
 };
 function openVideo(ex) {
   const id = ytId(ex.video);
-  if (!id) { window.open(ex.video || ytSearch(ex), '_blank', 'noopener'); return; }
+  if (!id) { window.open(ytRaw(ex.video) ? ytSearch(ex) : (ex.video || ytSearch(ex)), '_blank', 'noopener'); return; }
   $('vidframe').src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&playsinline=1&rel=0&modestbranding=1`;
   $('vidyt').href = ex.video;
   $('viddlg').showModal();
@@ -558,6 +571,7 @@ function render() {
   $('main').innerHTML = day ? renderDay(day) : S.tab === 'log' ? renderLog() : S.tab === 'chart' ? renderChart() : S.tab === 'admin' ? renderAdmin() : renderSettings();
   keepAwake(!!(day && S.cur[day.id]));
   bindSwipe();
+  checkThumbs();
 }
 function dayProgress(day) {
   let done = 0, all = 0;
@@ -581,7 +595,7 @@ function renderDay(day) {
     const id = ytId(ex.video);
     const thumb = id ? `style="background-image:url('https://i.ytimg.com/vi/${id}/hqdefault.jpg')"` : '';
     h += `<article class="card ex${doneAll ? ' done' : ''}" data-ex="${esc(ex.id)}" style="animation-delay:${xi * 40}ms"><div class="exhead">
-      <button class="thumb${id ? '' : ' q'}" data-act="video" ${thumb} aria-label="Videó"><i>${id ? ICON.play : ICON.search}</i></button>
+      <button class="thumb${id ? '' : ' q'}" data-act="video" ${id ? `data-vid="${id}"` : ''} ${thumb} aria-label="Videó"><i>${id ? ICON.play : ICON.search}</i></button>
       <div class="exinfo"><h3>${esc(ex.name)}</h3><div class="chips"><span>${ex.sets}×${esc(ex.reps)}</span><span>${esc(fmtW(ex))}</span>${ex.rest ? `<span>⏱ ${ex.rest} mp</span>` : ''}${ex.up ? '<span class="up">⬆ emelhetsz</span>' : ''}</div></div>
       ${isBW(ex) ? '' : `<button class="uchip" data-act="exunit" title="Mértékegység ennél a gyakorlatnál">${exU(ex) === 'lb' ? 'font' : 'kg'}</button>`}</div>`;
     if (ex.note) h += `<div class="note">${esc(ex.note)}</div>`;
@@ -693,7 +707,7 @@ function delRow(row) {
 // befejezés: összegzés és ünneplés
 function celebrate(sess) {
   let sets = 0, vol = 0;
-  for (const it of sess.items) for (const z of it.sets) if (!z.wu) { sets++; if (!it.bw) vol += (z.w || 0) * (z.r || 0) * (it.pair ? 2 : 1); }
+  for (const it of sess.items) for (const z of it.sets) if (!z.wu) { sets++; if (!it.bw) vol += (z.w || 0) * (z.r || 0) * (it.pair || it.side ? 2 : 1); }
   const mins = Math.max(1, Math.round((sess.date - sess.t0) / 60000));
   $('done').innerHTML = `<div style="font-size:44px">🏆</div><h2>Szép munka!</h2><div class="meta">${esc(sess.dayName)} kész, elmentve a naplóba.</div>
     <div class="big3"><div><b>${sets}</b>sorozat</div><div><b>${Math.round(toU(vol))}</b>${unit()} megmozgatva</div><div><b>${mins}</b>perc</div></div>
@@ -761,7 +775,7 @@ function renderChart(X) {
     h += chartSvg(rows.map((x) => ({ l: lbl(x.s), y: Math.max(...x.it.sets.map((z) => z.r || 0)) })), 'Legtöbb ismétlés egy sorozatban');
   } else {
     h += chartSvg(rows.map((x) => ({ l: lbl(x.s), y: toU(Math.max(...x.it.sets.map((z) => z.w || 0)), cu) })), `Legnagyobb súly (${cu})`);
-    h += chartSvg(rows.map((x) => ({ l: lbl(x.s), y: toU(x.it.sets.reduce((a, z) => a + (z.w || 0) * (z.r || 0), 0), cu) })), `Megmozgatott súly: súly × ismétlés (${cu})`);
+    h += chartSvg(rows.map((x) => ({ l: lbl(x.s), y: toU(x.it.sets.reduce((a, z) => a + (z.w || 0) * (z.r || 0), 0) * (x.it.pair || x.it.side ? 2 : 1), cu) })), `Megmozgatott súly: súly × ismétlés (${cu})`);
   }
   return h;
 }

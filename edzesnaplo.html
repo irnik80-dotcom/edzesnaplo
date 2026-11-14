@@ -525,7 +525,7 @@ async function keepAwake(on) {
     if (!on && wake) { await wake.release(); wake = null; }
   } catch (e) {}
 }
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { const d = dayById(S.tab); keepAwake(!!(d && S.cur[d.id])); if (restEnd) tickRest(); } });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { const d = dayById(S.tab); keepAwake(!!(d && started(S.cur[d.id]))); if (restEnd) tickRest(); } });
 
 // ---------- folyamatban lévő edzés ----------
 // sorozatok: előbb a bemelegítők (wu), aztán a munkasorozatok; x = edzés közben hozzáadott
@@ -548,12 +548,16 @@ function setRows(day, ex) {
 }
 function curArr(day, ex) {
   let c = S.cur[day.id];
-  if (!c) c = S.cur[day.id] = { t0: Date.now(), sets: {} };
+  if (!c) c = S.cur[day.id] = { sets: {} };
   const rows = setRows(day, ex);
   c.sets[ex.id] = rows;
   (c.fixed || (c.fixed = {}))[ex.id] = 1;
   return rows;
 }
+// az edzés akkor indul, ha megnyomod az „Edzés indítása” gombot, vagy kipipálod az első sorozatot
+const anyDone = (c) => !!c && Object.values(c.sets || {}).some((a) => (a || []).some((x) => x && x.d));
+const started = (c) => !!c && !!c.t0 && (!!c.go || anyDone(c));
+function startCur(day) { const c = S.cur[day.id] || (S.cur[day.id] = { sets: {} }); if (!started(c)) { c.t0 = Date.now(); c.go = 1; } return c; }
 function curSet(day, ex, i) { return curArr(day, ex)[i]; }
 function finishDay(day) {
   const c = S.cur[day.id];
@@ -574,7 +578,7 @@ function finishDay(day) {
     else ex.up = sets.length >= target && sets.every((s) => (s.r || 0) >= max) && ex.w != null;
   }
   if (!items.length) { toast('Még nincs kipipált sorozat.'); return; }
-  const sess = { id: newId(), date: Date.now(), t0: c.t0, day: day.id, dayName: day.name, items };
+  const sess = { id: newId(), date: Date.now(), t0: started(c) ? c.t0 : Date.now(), day: day.id, dayName: day.name, items };
   const prs = findPRs(sess); if (prs.length) sess.prs = prs;
   S.sessions.unshift(sess);
   delete S.cur[day.id];
@@ -673,7 +677,7 @@ function openSwap(day, ex) {
 function doSwap(v) {
   const { day, orig, list } = swapCtx; $('swapdlg').close();
   if (v === 'x') return;
-  const c = S.cur[day.id] || (S.cur[day.id] = { t0: Date.now(), sets: {} });
+  const c = S.cur[day.id] || (S.cur[day.id] = { sets: {} });
   c.swap = c.swap || {};
   if (v === 'back') delete c.swap[orig.id]; else c.swap[orig.id] = list[+v];
   save(); render(); toast(v === 'back' ? 'Visszaállítva' : 'Csere: ' + list[+v].name);
@@ -794,7 +798,7 @@ function render() {
   $('hdr').innerHTML = acct + `<div class="date">${esc(today)}</div><h1>${day ? (firstName() ? 'Hajrá, ' + esc(firstName()) + '!' : 'Mai edzés') : titles[S.tab]}</h1>` +
     (day ? `<div class="seg2">${S.plan.days.map((x) => `<button data-tab="${esc(x.id)}" class="${x.id === S.tab ? 'on' : ''}">${esc(x.tab || x.name)}</button>`).join('')}</div>` : '');
   $('main').innerHTML = day ? renderDay(day) : S.tab === 'log' ? renderLog() : S.tab === 'chart' ? renderChart() : S.tab === 'admin' ? renderAdmin() : renderSettings();
-  keepAwake(!!(day && S.cur[day.id]));
+  keepAwake(!!(day && started(S.cur[day.id])));
   bindSwipe();
   checkThumbs();
 }
@@ -807,11 +811,11 @@ const elapsed = (t0) => { const m = Math.floor((Date.now() - t0) / 60000); retur
 function renderDay(day) {
   const c = S.cur[day.id], pr = dayProgress(day);
   const C = 2 * Math.PI * 28;
-  const sug = !c && S.tab === suggestDay() && S.sessions.length;
+  const sug = !started(c) && S.tab === suggestDay() && S.sessions.length;
   let h = `<section class="hero">${sug ? '<span class="sugg">★ Mai javaslat</span>' : ''}<div class="hd"><div class="ring"><svg viewBox="0 0 68 68" width="68" height="68"><circle cx="34" cy="34" r="28" stroke="rgba(255,255,255,.22)" stroke-width="7" fill="none"/><circle cx="34" cy="34" r="28" stroke="#fff" stroke-width="7" fill="none" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - pr.pct)).toFixed(1)}" style="transition:stroke-dashoffset .6s"/></svg><span>${Math.round(pr.pct * 100)}%</span></div>
     <div><h2>${esc(day.name)}</h2><div class="hs">${esc(day.sub || '')}</div></div></div>
-    <div class="stats"><div><b>${day.ex.length}</b>gyakorlat</div><div><b>${pr.done}/${pr.all}</b>sorozat</div><div><b id="elapsed">${c ? elapsed(c.t0) : '–'}</b>${c ? 'eltelt' : 'még nem kezdted'}</div></div>
-    ${!c && !editMode && day.ex.length ? '<button class="hbtn" data-act="start">Edzés indítása</button>' : ''}</section>`;
+    <div class="stats"><div><b>${day.ex.length}</b>gyakorlat</div><div><b>${pr.done}/${pr.all}</b>sorozat</div><div><b id="elapsed">${started(c) ? elapsed(c.t0) : '–'}</b>${started(c) ? 'eltelt' : 'még nem kezdted'}</div></div>
+    ${!started(c) && !editMode && day.ex.length ? '<button class="hbtn" data-act="start">Edzés indítása</button>' : ''}</section>`;
   h += `<button class="edit" data-act="edit">${editMode ? '✓ Kész' : '✎ Szerkesztés'}</button><h2 style="margin-bottom:12px">Gyakorlatok</h2>`;
   if (!day.ex.length) h += `<div class="empty">Még nincs gyakorlat ezen a napon.<br>Nyomd meg a ✎ Szerkesztés gombot.</div>`;
   (editMode ? day.ex : dayEx(day)).forEach((ex, xi) => {
@@ -845,11 +849,11 @@ function renderDay(day) {
   if (editMode) h += `<button class="btn p big" data-act="exnew">+ Új gyakorlat</button>`;
   else if (day.ex.length) {
     h += `<p class="hint">Tipp: egy sorozatot balra húzva törölhetsz.</p>`;
-    if (c) h += `<button class="btn p big" data-act="finish">Edzés befejezése</button><div class="row" style="justify-content:center;margin-top:10px"><button class="btn s w" data-act="discard">Edzés elvetése</button></div>`;
+    if (started(c)) h += `<button class="btn p big" data-act="finish">Edzés befejezése</button><div class="row" style="justify-content:center;margin-top:10px"><button class="btn s w" data-act="discard">Edzés elvetése</button></div>`;
   }
   return h;
 }
-setInterval(() => { const el = $('elapsed'), d = dayById(S.tab); if (el && d && S.cur[d.id]) el.textContent = elapsed(S.cur[d.id].t0); }, 20000);
+setInterval(() => { const el = $('elapsed'), d = dayById(S.tab); if (el && d && started(S.cur[d.id])) el.textContent = elapsed(S.cur[d.id].t0); }, 20000);
 
 // ---------- pihenőidő gyors módosítása ----------
 let restEx = null;
@@ -1083,6 +1087,7 @@ $('main').addEventListener('click', (e) => {
       const wv = row.querySelector('.w').value, rv = row.querySelector('.r').value;
       s.w = fromU(wv, exU(ex)); s.r = rv === '' ? (s.wu ? 12 : range(ex.reps)[0]) : +rv;
       if (isBW(ex) && !s.wu) setBW(s.w);
+      if (!s.d) startCur(day);
       s.d = s.d ? 0 : 1;
       if (navigator.vibrate) navigator.vibrate(12);
       save(); render();
@@ -1096,7 +1101,7 @@ $('main').addEventListener('click', (e) => {
     case 'video': openVideo(ex); break;
     case 'restpick': openRest(ex); break;
     case 'swap': openSwap(day, ex); break;
-    case 'start': { S.cur[day.id] = { t0: Date.now(), sets: {} }; save(); render(); toast('Indulhat! 💪'); break; }
+    case 'start': { startCur(day); save(); render(); toast('Indulhat! 💪'); break; }
     case 'discard': if (confirm('Elveted a mostani edzést? A kipipált sorozatok törlődnek.')) { delete S.cur[day.id]; save(); render(); } break;
     case 'up': case 'down': { const j = act === 'up' ? i - 1 : i + 1; [day.ex[i], day.ex[j]] = [day.ex[j], day.ex[i]]; save(); render(); break; }
     case 'exedit': openEx(day, i); break;
@@ -1225,7 +1230,7 @@ if (onSite && 'serviceWorker' in navigator) {
   let reloaded = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (reloaded) return; reloaded = true;
-    const busy = Object.keys(S.cur).length && !!document.querySelector('.set.d');
+    const busy = Object.values(S.cur).some(started);
     if (busy) toast('Új verzió elérhető – a következő megnyitáskor betöltődik'); else location.reload();
   });
 }

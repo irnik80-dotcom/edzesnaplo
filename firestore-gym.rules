@@ -1,8 +1,11 @@
     // ---- Edzésnapló (irnik80-dotcom.github.io/edzesnaplo) ----
     // Mindenki csak a saját tervét és naplóját látja és írja.
+    // Az admin (isTeacher: a saját e-mail-címed) mindenkiét olvashatja.
     match /gym/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read: if isMe(uid) || isTeacher();
+      allow write: if isMe(uid);
       match /sessions/{sid} {
-        allow read, write: if request.auth != null && request.auth.uid == uid;
+        allow read: if isMe(uid) || isTeacher();
+        allow write: if isMe(uid);
       }
     }

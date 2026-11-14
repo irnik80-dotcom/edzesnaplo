@@ -226,6 +226,92 @@ const DEFAULT_PLAN = { days: [
   ]}
 ]};
 
+// Attila 10 napos terve (196 cm, 105 kg) – kiinduló súlyok, az első héten igazítandók
+const ATTILA_PLAN = { days: [
+  { id: 'p1', tab: '1', name: '1. nap', sub: 'mell, váll, tricepsz', ex: [
+    { id: 'p1a', name: 'Fekvenyomás rúddal', sets: 4, reps: '6–8', w: 60, wu: 2, rest: 150, video: '', q: 'barbell bench press form' },
+    { id: 'p1b', name: 'Ferde padon nyomás súlyzóval', sets: 3, reps: '8–10', w: 22, pair: true, rest: 120, video: '', q: 'incline dumbbell press form' },
+    { id: 'p1c', name: 'Tárogató gép szemből (mellrepülés)', sets: 3, reps: '12', w: 45, rest: 75, video: '', q: 'pec deck fly machine' },
+    { id: 'p1d', name: 'Ülő súlyzós vállnyomás', sets: 3, reps: '8–10', w: 18, pair: true, rest: 120, video: YT('e4GP9M687zY') },
+    { id: 'p1e', name: 'Oldalemelés', sets: 3, reps: '12–15', w: 8, pair: true, rest: 60, video: YT('TM6se0vr1VA') },
+    { id: 'p1f', name: 'Tricepsz letolás', sets: 3, reps: '12', w: 30, rest: 60, video: YT('xSV6-hE3prc') }
+  ]},
+  { id: 'p2', tab: '2', name: '2. nap', sub: 'hát, bicepsz', ex: [
+    { id: 'p2a', name: 'Felhúzás', sets: 4, reps: '5', w: 105, wu: 2, rest: 180, video: '', q: 'conventional deadlift form', note: 'Egyenes hát, a rúd végig a lábszár mellett.' },
+    { id: 'p2b', name: 'Lehúzás széles fogással', sets: 4, reps: '8–10', w: 65, rest: 90, video: YT('mUfNdKgsgHI') },
+    { id: 'p2c', name: 'Ülő kábeles evezés (V-fogás)', sets: 3, reps: '10', w: 60, rest: 90, video: '', q: 'seated cable row v bar' },
+    { id: 'p2d', name: 'Face pull', sets: 3, reps: '15', w: 25, rest: 60, video: YT('jF5CK2nk0p8') },
+    { id: 'p2e', name: 'Bicepsz súlyzóval', sets: 3, reps: '10', w: 14, pair: true, rest: 60, video: YT('e_XV8NV7xm0') },
+    { id: 'p2f', name: 'Kalapács bicepsz', sets: 3, reps: '12', w: 16, pair: true, rest: 60, video: YT('lGdqU35nYHU') }
+  ]},
+  { id: 'p3', tab: '3', name: '3. nap', sub: 'láb (guggolás)', ex: [
+    { id: 'p3a', name: 'Guggolás rúddal', sets: 4, reps: '6–8', w: 80, wu: 2, rest: 150, video: '', q: 'barbell back squat form' },
+    { id: 'p3b', name: 'Román felhúzás', sets: 3, reps: '8–10', w: 80, rest: 120, video: '', q: 'romanian deadlift form' },
+    { id: 'p3c', name: 'Lábtolás gépen', sets: 3, reps: '10–12', w: 160, rest: 120, video: '', q: 'leg press form' },
+    { id: 'p3d', name: 'Combhajlítás gépen', sets: 3, reps: '12', w: 45, rest: 60, video: '', q: 'seated leg curl machine' },
+    { id: 'p3e', name: 'Vádliemelés', sets: 4, reps: '12–15', w: 80, rest: 60, video: '', q: 'standing calf raise machine' },
+    { id: 'p3f', name: 'Plank', sets: 3, reps: '45 mp', w: null, rest: 60, video: '', q: 'plank form', note: 'Ismétlés helyett másodpercet írj be.' }
+  ]},
+  { id: 'p4', tab: '4', name: '4. nap', sub: 'felsőtest – erő', ex: [
+    { id: 'p4a', name: 'Fekvenyomás rúddal', sets: 5, reps: '5', w: 65, wu: 2, rest: 180, video: '', q: 'barbell bench press form' },
+    { id: 'p4b', name: 'Negatív pull-up', sets: 4, reps: '3–5', w: null, rest: 120, video: YT('Ve6-GZJmd1M'), note: 'Lefelé 4–5 mp.' },
+    { id: 'p4c', name: 'Döntött törzsű evezés rúddal', sets: 4, reps: '6–8', w: 60, rest: 120, video: '', q: 'barbell bent over row form' },
+    { id: 'p4d', name: 'Állva vállnyomás rúddal', sets: 3, reps: '6–8', w: 40, wu: 1, rest: 120, video: '', q: 'barbell overhead press form' },
+    { id: 'p4e', name: 'EZ-rudas bicepsz', sets: 3, reps: '8–10', w: 30, rest: 75, video: '', q: 'ez bar curl form' },
+    { id: 'p4f', name: 'Tricepsz letolás kötéllel', sets: 3, reps: '10–12', w: 30, rest: 60, video: '', q: 'rope triceps pushdown' }
+  ]},
+  { id: 'p5', tab: '5', name: '5. nap', sub: 'láb (csípő) + törzs', ex: [
+    { id: 'p5a', name: 'Csípőemelés rúddal (hip thrust)', sets: 4, reps: '8–10', w: 100, wu: 1, rest: 120, video: '', q: 'barbell hip thrust form' },
+    { id: 'p5b', name: 'Bolgár guggolás', sets: 3, reps: '8', w: 16, pair: true, side: true, rest: 90, video: '', q: 'bulgarian split squat dumbbell' },
+    { id: 'p5c', name: 'Lábnyújtás gépen', sets: 3, reps: '12–15', w: 50, rest: 60, video: '', q: 'leg extension machine' },
+    { id: 'p5d', name: 'Fekvő combhajlítás', sets: 3, reps: '12', w: 40, rest: 60, video: '', q: 'lying leg curl machine' },
+    { id: 'p5e', name: 'Függő térdemelés', sets: 3, reps: '12', w: null, rest: 60, video: '', q: 'hanging knee raise' },
+    { id: 'p5f', name: 'Kábeles hasprés térdelve', sets: 3, reps: '15', w: 35, rest: 60, video: '', q: 'kneeling cable crunch' }
+  ]},
+  { id: 'p6', tab: '6', name: '6. nap', sub: 'mell, váll (ferde)', ex: [
+    { id: 'p6a', name: 'Ferde padon nyomás rúddal', sets: 4, reps: '6–8', w: 55, wu: 2, rest: 150, video: '', q: 'incline barbell bench press form' },
+    { id: 'p6b', name: 'Fekvenyomás súlyzóval', sets: 3, reps: '8–10', w: 26, pair: true, rest: 120, video: '', q: 'dumbbell bench press form' },
+    { id: 'p6c', name: 'Kábeles mellrepülés', sets: 3, reps: '12–15', w: 12.5, side: true, rest: 60, video: '', q: 'cable fly form' },
+    { id: 'p6d', name: 'Arnold-nyomás', sets: 3, reps: '10', w: 16, pair: true, rest: 90, video: '', q: 'arnold press form' },
+    { id: 'p6e', name: 'Kábeles oldalemelés', sets: 3, reps: '15', w: 7.5, side: true, rest: 60, video: '', q: 'cable lateral raise' },
+    { id: 'p6f', name: 'Tricepsz nyújtás fej fölött (kábel)', sets: 3, reps: '12', w: 25, rest: 60, video: '', q: 'overhead cable triceps extension' }
+  ]},
+  { id: 'p7', tab: '7', name: '7. nap', sub: 'hát (vastagság), hátsó váll', ex: [
+    { id: 'p7a', name: 'Gépes segített húzódzkodás', sets: 4, reps: '6–8', w: 40, rest: 120, video: '', q: 'assisted pull up machine', note: 'A súly itt a segítség: minél kevesebb, annál nehezebb.' },
+    { id: 'p7b', name: 'T-rudas evezés', sets: 4, reps: '8', w: 40, rest: 120, video: '', q: 't bar row form' },
+    { id: 'p7c', name: 'Egykezes súlyzós evezés', sets: 3, reps: '10', w: 34, side: true, rest: 90, video: YT('4ZpQb1kX7Ew') },
+    { id: 'p7d', name: 'Lehúzás nyújtott karral', sets: 3, reps: '12', w: 30, rest: 60, video: '', q: 'straight arm pulldown cable' },
+    { id: 'p7e', name: 'Tárogató gép háttal (fordított repülés)', sets: 3, reps: '15', w: 35, rest: 60, video: '', q: 'reverse pec deck rear delt fly' },
+    { id: 'p7f', name: 'Bicepsz rúddal', sets: 3, reps: '10', w: 30, rest: 60, video: '', q: 'barbell curl form' }
+  ]},
+  { id: 'p8', tab: '8', name: '8. nap', sub: 'láb (felhúzás)', ex: [
+    { id: 'p8a', name: 'Szumó felhúzás', sets: 4, reps: '5', w: 100, wu: 2, rest: 180, video: '', q: 'sumo deadlift form' },
+    { id: 'p8b', name: 'Serleg guggolás (goblet)', sets: 3, reps: '10', w: 32, rest: 90, video: '', q: 'goblet squat form' },
+    { id: 'p8c', name: 'Lábtolás gépen', sets: 4, reps: '12', w: 150, rest: 90, video: '', q: 'leg press form' },
+    { id: 'p8d', name: 'Combhajlítás gépen', sets: 3, reps: '12', w: 45, rest: 60, video: '', q: 'seated leg curl machine' },
+    { id: 'p8e', name: 'Ülő vádliemelés', sets: 4, reps: '15', w: 40, rest: 60, video: '', q: 'seated calf raise machine' },
+    { id: 'p8f', name: 'Ab wheel (hasizom kerék)', sets: 3, reps: '8–10', w: null, rest: 60, video: '', q: 'ab wheel rollout form' }
+  ]},
+  { id: 'p9', tab: '9', name: '9. nap', sub: 'felsőtest – volumen (gépek)', ex: [
+    { id: 'p9a', name: 'Mellnyomó gép', sets: 3, reps: '10–12', w: 60, rest: 90, video: '', q: 'machine chest press form' },
+    { id: 'p9b', name: 'Lehúzás szűk V-fogással', sets: 3, reps: '10–12', w: 60, rest: 90, video: '', q: 'close grip v bar lat pulldown' },
+    { id: 'p9c', name: 'Vállnyomó gép', sets: 3, reps: '10–12', w: 40, rest: 90, video: '', q: 'machine shoulder press form' },
+    { id: 'p9d', name: 'Ülő kábeles evezés széles fogással', sets: 3, reps: '12', w: 55, rest: 75, video: '', q: 'wide grip seated cable row' },
+    { id: 'p9e', name: 'Oldalemelés', sets: 3, reps: '15', w: 7, pair: true, rest: 60, video: YT('TM6se0vr1VA') },
+    { id: 'p9f', name: 'Kalapács bicepsz', sets: 3, reps: '12', w: 16, pair: true, rest: 0, video: YT('lGdqU35nYHU'), note: 'Szuperszett a tricepsz letolással.' },
+    { id: 'p9g', name: 'Tricepsz letolás', sets: 3, reps: '12', w: 30, rest: 60, video: YT('xSV6-hE3prc') }
+  ]},
+  { id: 'p10', tab: '10', name: '10. nap', sub: 'teljes test + kondi', ex: [
+    { id: 'p10a', name: 'Kettlebell lendítés', sets: 4, reps: '15', w: 24, rest: 60, video: '', q: 'kettlebell swing form' },
+    { id: 'p10b', name: 'Fekvőtámasz', sets: 3, reps: '10–15', w: null, rest: 60, video: 'https://youtube.com/shorts/tGyl1jJQcg4' },
+    { id: 'p10c', name: 'Fordított evezés (rúd alatt)', sets: 3, reps: '10', w: null, rest: 60, video: '', q: 'inverted row form' },
+    { id: 'p10d', name: 'Kitörés súlyzóval', sets: 3, reps: '10', w: 16, pair: true, side: true, rest: 75, video: '', q: 'dumbbell walking lunge' },
+    { id: 'p10e', name: 'Farmer séta', sets: 3, reps: '40 m', w: 32, pair: true, rest: 90, video: '', q: 'farmers walk form', note: 'Ismétlés helyett métert írj be.' },
+    { id: 'p10f', name: 'Evezőgép', sets: 1, reps: '2000 m', w: null, rest: 0, video: '', q: 'rowing machine technique', note: 'Egyenletes tempó, a végén a métert/időt írd be.' }
+  ]}
+]};
+const PLANS = { monika: { name: 'Mónika – felsőtest A/B/C (heti 3)', plan: DEFAULT_PLAN }, attila: { name: 'Attila – 10 napos ciklus', plan: ATTILA_PLAN } };
+
 const clone = (o) => JSON.parse(JSON.stringify(o));
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -238,7 +324,7 @@ function load() {
 }
 // régebbi terv kiegészítése: a kezdő gyakorlatok új videói és keresőszavai
 function upgradePlan(plan) {
-  const def = new Map(); for (const d of DEFAULT_PLAN.days) for (const ex of d.ex) def.set(ex.id, ex);
+  const def = new Map(); for (const k in PLANS) for (const d of PLANS[k].plan.days) for (const ex of d.ex) def.set(ex.id, ex);
   for (const d of plan.days) for (const ex of d.ex) { const x = def.get(ex.id); if (!x) continue; if (!ex.video && x.video) ex.video = x.video; if (!ex.q && x.q) ex.q = x.q; }
   return plan;
 }
@@ -254,7 +340,7 @@ function pushCloud() {
   if (!Gym.cloud) return;
   clearTimeout(cloudTimer);
   cloudTimer = setTimeout(() => {
-    Gym.cloud.setDoc(clone({ plan: S.plan, settings: S.settings, cur: S.cur, at: S.at }))
+    Gym.cloud.setDoc(clone({ plan: S.plan, settings: S.settings, cur: S.cur, at: S.at, name: (Gym.cloud.me || {}).name || '', email: (Gym.cloud.me || {}).email || '', last: S.sessions[0] ? S.sessions[0].date : 0, count: S.sessions.length }))
       .catch((e) => console.warn('Felhős mentés sikertelen', e));
   }, 1200);
 }
@@ -282,8 +368,10 @@ Gym.attach = async (api, uid) => {
   Gym.cloud = api;
   save();
   render();
+  // admin: ha a Firestore-szabályok engedik a többiek listázását
+  if (api.adminList) api.adminList().then((list) => { Gym.admin = list; render(); }).catch(() => { Gym.admin = null; });
 };
-Gym.detach = () => { Gym.cloud = null; S = fresh(); save(false); render(); };
+Gym.detach = () => { Gym.cloud = null; Gym.admin = null; ADM = null; S = fresh(); save(false); render(); };
 Gym.setWho = (name, msg) => { Gym.who = name || null; Gym.msg = msg || ''; if (S.tab === 'set') render(); };
 
 // ---------- segédek ----------
@@ -439,6 +527,7 @@ const ICON = {
   dumb: '<svg viewBox="0 0 24 24"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg>',
   list: '<svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>',
   chart: '<svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 15l4-5 3 3 5-6"/></svg>',
+  users: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5M16 4.8a3.3 3.3 0 0 1 0 6.4M18 14.8c2 .7 3.2 2.4 3.6 5.2"/></svg>',
   gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>'
 };
 function openVideo(ex) {
@@ -456,16 +545,17 @@ const firstName = () => (Gym.who || '').split(/[\s@]/)[0];
 function render() {
   if (!S.plan.days.length && S.tab !== 'set') S.tab = 'set';
   const d = dayById(S.tab);
-  if (!d && !['log', 'chart', 'set'].includes(S.tab)) S.tab = S.plan.days[0].id;
+  if (!d && !['log', 'chart', 'set', 'admin'].includes(S.tab)) S.tab = S.plan.days[0].id;
+  if (S.tab === 'admin' && !Gym.admin) S.tab = 'set';
   const view = dayById(S.tab) ? 'train' : S.tab;
-  $('dock').innerHTML = [['train', 'Edzés', ICON.dumb], ['log', 'Napló', ICON.list], ['chart', 'Haladás', ICON.chart], ['set', 'Beállítás', ICON.gear]]
+  $('dock').innerHTML = [['train', 'Edzés', ICON.dumb], ['log', 'Napló', ICON.list], ['chart', 'Haladás', ICON.chart]].concat(Gym.admin ? [['admin', 'Admin', ICON.users]] : []).concat([['set', 'Beállítás', ICON.gear]])
     .map(([v, l, ic]) => `<button data-nav="${v}" class="${v === view ? 'on' : ''}">${ic}${l}</button>`).join('');
   const day = dayById(S.tab);
   const today = new Date().toLocaleDateString('hu-HU', { weekday: 'long', month: 'long', day: 'numeric' });
-  const titles = { log: 'Napló', chart: 'Haladás', set: 'Beállítások' };
+  const titles = { log: 'Napló', chart: 'Haladás', set: 'Beállítások', admin: ADM && Gym.admin ? esc(((Gym.admin.find((u) => u.uid === ADM.uid) || {}).name) || 'Felhasználó') : 'Admin' };
   $('hdr').innerHTML = `<div class="date">${esc(today)}</div><h1>${day ? (firstName() ? 'Hajrá, ' + esc(firstName()) + '!' : 'Mai edzés') : titles[S.tab]}</h1>` +
     (day ? `<div class="seg2">${S.plan.days.map((x) => `<button data-tab="${esc(x.id)}" class="${x.id === S.tab ? 'on' : ''}">${esc(x.tab || x.name)}</button>`).join('')}</div>` : '');
-  $('main').innerHTML = day ? renderDay(day) : S.tab === 'log' ? renderLog() : S.tab === 'chart' ? renderChart() : renderSettings();
+  $('main').innerHTML = day ? renderDay(day) : S.tab === 'log' ? renderLog() : S.tab === 'chart' ? renderChart() : S.tab === 'admin' ? renderAdmin() : renderSettings();
   keepAwake(!!(day && S.cur[day.id]));
   bindSwipe();
 }
@@ -520,6 +610,32 @@ function renderDay(day) {
 }
 setInterval(() => { const el = $('elapsed'), d = dayById(S.tab); if (el && d && S.cur[d.id]) el.textContent = elapsed(S.cur[d.id].t0); }, 20000);
 
+// ---------- admin: a többiek edzései ----------
+let ADM = null;
+async function loadAdm() {
+  const a = ADM;
+  try {
+    const [sessions, doc] = await Promise.all([Gym.cloud.adminSessions(a.uid), Gym.cloud.adminDoc(a.uid)]);
+    a.data = { sessions: sessions.sort((x, y) => y.date - x.date), plan: (doc && doc.plan) || { days: [] }, ro: true };
+  } catch (e) { a.err = (e && (e.code || e.message)) || 'hiba'; }
+  if (ADM === a) render();
+}
+function renderAdmin() {
+  if (!ADM) {
+    const list = Gym.admin.slice().sort((x, y) => (y.last || 0) - (x.last || 0));
+    return `<p class="sub">${list.length} felhasználó. Koppints egy névre a naplóhoz és a grafikonokhoz.</p>` + list.map((u) => `
+      <button class="card" data-act="admuser" data-uid="${esc(u.uid)}" style="width:100%;text-align:left;display:flex;gap:12px;align-items:center">
+        <span style="width:44px;height:44px;border-radius:50%;background:var(--grad);color:#fff;display:grid;place-items:center;font-weight:800">${esc((u.name || u.email || '?').slice(0, 1).toUpperCase())}</span>
+        <span class="grow"><b>${esc(u.name || u.email || u.uid)}</b><br><span class="meta">${u.count || 0} edzés${u.last ? ' · utoljára ' + esc(fmtDate(u.last)) : ''}</span></span><span class="meta">›</span></button>`).join('');
+  }
+  let h = `<div class="row" style="margin-bottom:12px"><button class="btn s" data-act="admback">‹ Vissza</button><span class="grow"></span><div class="seg"><button data-act="admview" data-v="log" class="${ADM.view === 'log' ? 'on' : ''}">Napló</button><button data-act="admview" data-v="chart" class="${ADM.view === 'chart' ? 'on' : ''}">Haladás</button><button data-act="admview" data-v="plan" class="${ADM.view === 'plan' ? 'on' : ''}">Terv</button></div></div>`;
+  if (ADM.err) return h + `<div class="empty">Nem sikerült betölteni (${esc(ADM.err)}).</div>`;
+  if (!ADM.data) return h + '<div class="empty">Betöltés…</div>';
+  if (ADM.view === 'log') return h + renderLog(ADM.data);
+  if (ADM.view === 'chart') return h + renderChart(ADM.data);
+  return h + (ADM.data.plan.days.map((d) => `<div class="card"><b>${esc(d.name)}</b> <span class="meta">${esc(d.sub || '')}</span><ul style="margin:8px 0 0;padding-left:18px;font-size:14px">${d.ex.map((ex) => `<li>${esc(ex.name)} <span class="meta">${ex.sets}×${esc(ex.reps)} · ${esc(fmtW(ex))}</span></li>`).join('')}</ul></div>`).join('') || '<div class="empty">Nincs terv.</div>');
+}
+
 // sorozat törlése balra húzással
 function bindSwipe() {
   document.querySelectorAll('.set').forEach((row) => {
@@ -567,12 +683,14 @@ function celebrate(sess) {
   }
   if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
 }
-function renderLog() {
-  if (!S.sessions.length) return `<div class="empty">Még nincs elmentett edzés. Pipáld ki a sorozatokat, majd nyomd meg az „Edzés befejezése” gombot.</div>`;
-  let h = '<p class="sub">' + S.sessions.length + ' edzés</p>';
-  for (const s of S.sessions) {
+function renderLog(X) {
+  X = X || { sessions: S.sessions, plan: S.plan };
+  const exById = (id) => { for (const d of X.plan.days) for (const ex of d.ex) if (ex.id === id) return ex; return null; };
+  if (!X.sessions.length) return `<div class="empty">Még nincs elmentett edzés. Pipáld ki a sorozatokat, majd nyomd meg az „Edzés befejezése” gombot.</div>`;
+  let h = '<p class="sub">' + X.sessions.length + ' edzés</p>';
+  for (const s of X.sessions) {
     const mins = s.t0 ? Math.round((s.date - s.t0) / 60000) : 0;
-    h += `<div class="card log"><div class="h"><b>${esc(fmtDate(s.date))} · ${esc(s.dayName || s.day)}</b>${mins ? `<span class="meta">${mins} perc</span>` : ''}<button class="btn s w" data-act="logdel" data-id="${esc(s.id)}">🗑</button></div><ul>`;
+    h += `<div class="card log"><div class="h"><b>${esc(fmtDate(s.date))} · ${esc(s.dayName || s.day)}</b>${mins ? `<span class="meta">${mins} perc</span>` : ''}${X.ro ? '' : `<button class="btn s w" data-act="logdel" data-id="${esc(s.id)}">🗑</button>`}</div><ul>`;
     for (const it of s.items) {
       const pe = exById(it.ex), u = pe ? exU(pe) : (it.u || unit());
       if (it.bw) { const bw = it.sets.find((x) => x.w != null); h += `<li>${esc(it.name)}: <span>${it.sets.map((x) => (x.wu ? 'B ' : '') + (x.r == null ? '?' : x.r)).join(', ')} ism.${bw ? ` (testsúly ${toU(bw.w)} ${unit()})` : ''}</span></li>`; }
@@ -599,15 +717,17 @@ function chartSvg(pts, label) {
     <text x="${L}" y="${H - 5}">${esc(pts[0].l)}</text>${pts.length > 1 ? `<text x="${W - R}" y="${H - 5}" text-anchor="end">${esc(pts[pts.length - 1].l)}</text>` : ''}
   </svg></div>`;
 }
-function renderChart() {
+function renderChart(X) {
+  X = X || { sessions: S.sessions, plan: S.plan };
+  const exById = (id) => { for (const d of X.plan.days) for (const ex of d.ex) if (ex.id === id) return ex; return null; };
   const names = new Map();
-  for (const s of S.sessions) for (const it of s.items) if (!names.has(it.ex)) names.set(it.ex, it.name);
-  for (const d of S.plan.days) for (const ex of d.ex) names.set(ex.id, ex.name);
-  const used = [...names].filter(([id]) => S.sessions.some((s) => s.items.some((it) => it.ex === id)));
+  for (const s of X.sessions) for (const it of s.items) if (!names.has(it.ex)) names.set(it.ex, it.name);
+  for (const d of X.plan.days) for (const ex of d.ex) names.set(ex.id, ex.name);
+  const used = [...names].filter(([id]) => X.sessions.some((s) => s.items.some((it) => it.ex === id)));
   if (!used.length) return `<div class="empty">A grafikon az első elmentett edzés után jelenik meg.</div>`;
   if (!used.some(([id]) => id === chartEx)) chartEx = used[0][0];
   let h = `<p class="sub">Gyakorlatonként, edzésről edzésre</p><select id="chartsel">${used.map(([id, n]) => `<option value="${esc(id)}"${id === chartEx ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select><div style="height:10px"></div>`;
-  const rows = S.sessions.slice().reverse().map((s) => { const it = s.items.find((z) => z.ex === chartEx); return { s, it: it && Object.assign({}, it, { sets: it.sets.filter((z) => !z.wu) }) }; }).filter((x) => x.it && x.it.sets.length);
+  const rows = X.sessions.slice().reverse().map((s) => { const it = s.items.find((z) => z.ex === chartEx); return { s, it: it && Object.assign({}, it, { sets: it.sets.filter((z) => !z.wu) }) }; }).filter((x) => x.it && x.it.sets.length);
   const lbl = (s) => new Date(s.date).toLocaleDateString('hu-HU', { month: 'numeric', day: 'numeric' });
   const bw = rows.every((x) => x.it.bw || x.it.sets.every((z) => z.w == null));
   const pe = exById(chartEx), cu = pe ? exU(pe) : ((rows[0] && rows[0].it.u) || unit());
@@ -645,7 +765,9 @@ function renderSettings() {
   h += `<button class="btn" data-act="dnew" style="margin-top:10px">+ Új nap</button></div>`;
   h += `<div class="card"><b>Mentés</b><p class="meta">A terv és a napló letölthető fájlba, és onnan visszatölthető.</p>
     <div class="row"><button class="btn" data-act="export">Letöltés</button><label class="btn">Visszatöltés<input type="file" id="importfile" accept="application/json,.json" hidden></label></div></div>
-    <div class="card"><b>Kezdő terv</b><p class="meta">Visszaállítja Mónika A/B/C tervét. A napló megmarad.</p><button class="btn w" data-act="reset">Terv visszaállítása</button></div>`;
+    <div class="card f"><b>Kész tervek</b><p class="meta">A kiválasztott terv lecseréli a mostanit. A napló megmarad.</p>
+    <select id="tplsel">${Object.entries(PLANS).map(([k, v]) => `<option value="${k}">${esc(v.name)}</option>`).join('')}</select>
+    <button class="btn w" data-act="reset">Terv betöltése</button></div>`;
   return h;
 }
 
@@ -697,7 +819,10 @@ $('main').addEventListener('click', (e) => {
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'edzesnaplo-' + new Date().toISOString().slice(0, 10) + '.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
       break;
     }
-    case 'reset': if (confirm('Visszaállítod a kezdő tervet? A saját módosításaid elvesznek, a napló megmarad.')) { S.plan = clone(DEFAULT_PLAN); S.cur = {}; save(); render(); toast('Kezdő terv visszaállítva'); } break;
+    case 'reset': { const k = $('tplsel').value; if (confirm(`Betöltöd: ${PLANS[k].name}? A mostani terved és a saját módosításaid elvesznek, a napló megmarad.`)) { S.plan = clone(PLANS[k].plan); S.cur = {}; S.tab = S.lastDay = S.plan.days[0].id; save(); render(); window.scrollTo(0, 0); toast('Terv betöltve'); } break; }
+    case 'admuser': ADM = { uid: b.dataset.uid, view: 'log', data: null }; render(); loadAdm(); break;
+    case 'admback': ADM = null; render(); break;
+    case 'admview': ADM.view = b.dataset.v; render(); break;
   }
 });
 $('main').addEventListener('change', (e) => {

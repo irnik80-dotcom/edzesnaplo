@@ -29,7 +29,10 @@ async function start() {
     import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`)
   ]);
   const app = initializeApp(firebaseConfig);
-  const auth = A.getAuth(app);
+  // tartós bejelentkezés (IndexedDB, tartalékként localStorage)
+  const auth = A.initializeAuth(app, { persistence: [A.indexedDBLocalPersistence, A.browserLocalPersistence], popupRedirectResolver: A.browserPopupRedirectResolver });
+  // ha átirányításos belépésből jöttünk vissza, a hibát kiírjuk
+  A.getRedirectResult(auth).catch((e) => setTimeout(() => err(msgOf(e)), 500));
   auth.languageCode = 'hu';
   let db;
   try { db = F.initializeFirestore(app, { localCache: F.persistentLocalCache({ tabManager: F.persistentMultipleTabManager() }) }); }
@@ -43,7 +46,17 @@ async function start() {
   // A beállítások fül újrarajzolódik, ezért eseménydelegálással figyelünk.
   document.addEventListener('click', (e) => {
     const id = e.target && e.target.id;
-    if (id === 'login-google') run(() => A.signInWithPopup(auth, new A.GoogleAuthProvider()));
+    if (id === 'login-google') {
+      if (auth.currentUser) return; // már be vagyunk lépve
+      const prov = new A.GoogleAuthProvider(); prov.setCustomParameters({ prompt: 'select_account' });
+      // kezdőképernyőre tett appban (iPhone) a felugró ablak nem tud visszaszólni: ott átirányítás kell
+      const standalone = window.navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+      run(async () => {
+        if (standalone) return A.signInWithRedirect(auth, prov);
+        try { await A.signInWithPopup(auth, prov); }
+        catch (x) { if (x && (x.code === 'auth/popup-blocked' || x.code === 'auth/operation-not-supported-in-this-environment')) return A.signInWithRedirect(auth, prov); throw x; }
+      });
+    }
     else if (id === 'login-register') {
       const f = $('login-form'); if (!f.reportValidity()) return;
       run(() => A.createUserWithEmailAndPassword(auth, email(), pass()));

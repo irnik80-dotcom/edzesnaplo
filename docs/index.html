@@ -144,6 +144,8 @@ button.chip{border:0;font:inherit;font-size:12px;font-weight:700;padding:3px 8px
 #done .big3 b{display:block;font-size:22px;color:var(--ink)}
 .conf{position:fixed;top:-12px;width:9px;height:14px;border-radius:2px;z-index:40;pointer-events:none;animation:fall linear forwards}
 @keyframes fall{to{transform:translateY(105vh) rotate(720deg);opacity:.2}}
+.who{float:right;margin-top:2px;min-width:38px;height:38px;border-radius:999px;border:0;background:var(--grad);color:#fff;font-weight:800;padding:0 12px}
+.who.out{background:var(--card);color:var(--acc);border:1px solid var(--line);font-size:13px}
 .prev{font-size:12.5px;color:var(--mute);margin-top:10px;padding:7px 10px;border-radius:10px;background:var(--soft)}
 .prev b{color:var(--ink);font-variant-numeric:tabular-nums}
 .chips button.swap{border:0;font:inherit;font-size:12px;font-weight:700;padding:3px 8px;border-radius:8px;background:transparent;color:var(--mute);border:1px dashed var(--line)}
@@ -406,7 +408,13 @@ Gym.attach = async (api, uid) => {
   if (api.adminList) api.adminList().then((list) => { Gym.admin = list; render(); }).catch(() => { Gym.admin = null; });
 };
 Gym.detach = () => { Gym.cloud = null; Gym.admin = null; ADM = null; S = fresh(); save(false); render(); };
-Gym.setWho = (name, msg) => { Gym.who = name || null; Gym.msg = msg || ''; if (S.tab === 'set') render(); };
+Gym.pending = true; // amíg a Firebase meg nem mondja, be vagyunk-e lépve
+Gym.setWho = (name, msg) => {
+  Gym.pending = false; Gym.who = name || null; Gym.msg = msg || '';
+  try { if (name) localStorage.setItem('edzesnaplo.who', name); else localStorage.removeItem('edzesnaplo.who'); } catch (e) {}
+  render();
+};
+Gym.lastWho = () => { try { return localStorage.getItem('edzesnaplo.who'); } catch (e) { return null; } };
 
 // ---------- segédek ----------
 const unit = () => S.settings.unit;
@@ -746,7 +754,7 @@ $('vidx').onclick = () => $('viddlg').close();
 $('viddlg').addEventListener('close', () => { $('vidframe').src = 'about:blank'; });
 
 // ---------- megjelenítés ----------
-const firstName = () => (Gym.who || '').split(/[\s@]/)[0];
+const firstName = () => (Gym.who || (Gym.pending && Gym.lastWho()) || '').split(/[\s@]/)[0];
 function render() {
   if (!S.plan.days.length && S.tab !== 'set') S.tab = 'set';
   const d = dayById(S.tab);
@@ -758,7 +766,8 @@ function render() {
   const day = dayById(S.tab);
   const today = new Date().toLocaleDateString('hu-HU', { weekday: 'long', month: 'long', day: 'numeric' });
   const titles = { log: 'Napló', chart: 'Haladás', set: 'Beállítások', admin: ADM && Gym.admin ? esc(((Gym.admin.find((u) => u.uid === ADM.uid) || {}).name) || 'Felhasználó') : 'Admin' };
-  $('hdr').innerHTML = `<div class="date">${esc(today)}</div><h1>${day ? (firstName() ? 'Hajrá, ' + esc(firstName()) + '!' : 'Mai edzés') : titles[S.tab]}</h1>` +
+  const acct = window.GYM_AUTH ? (Gym.who ? `<button class="who" data-nav="set" title="Belépve: ${esc(Gym.who)}">${esc(Gym.who.slice(0, 1).toUpperCase())}</button>` : Gym.pending ? '' : '<button class="who out" data-nav="set">Belépés</button>') : '';
+  $('hdr').innerHTML = acct + `<div class="date">${esc(today)}</div><h1>${day ? (firstName() ? 'Hajrá, ' + esc(firstName()) + '!' : 'Mai edzés') : titles[S.tab]}</h1>` +
     (day ? `<div class="seg2">${S.plan.days.map((x) => `<button data-tab="${esc(x.id)}" class="${x.id === S.tab ? 'on' : ''}">${esc(x.tab || x.name)}</button>`).join('')}</div>` : '');
   $('main').innerHTML = day ? renderDay(day) : S.tab === 'log' ? renderLog() : S.tab === 'chart' ? renderChart() : S.tab === 'admin' ? renderAdmin() : renderSettings();
   keepAwake(!!(day && S.cur[day.id]));
@@ -1001,9 +1010,9 @@ function renderSettings() {
     <label>Heti cél (edzés / hét)<input type="number" id="goal" min="1" max="7" inputmode="numeric" value="${S.settings.goal || 3}"></label>
     <label>Alap pihenőidő (mp), ha a gyakorlatnál nincs megadva<input type="number" id="defrest" min="0" step="5" value="${S.settings.rest}"></label></div>`;
   h += `<div class="card" id="acct" ${window.GYM_AUTH ? '' : 'hidden'}><b>Fiók</b>
-    <p class="meta">${Gym.who ? 'Belépve: ' + esc(Gym.who) + '. Az adataid a felhőbe mentődnek.' : 'Belépés után az adataid a felhőbe mentődnek, és bármelyik telefonról elérhetők.'}</p>
+    <p class="meta">${Gym.who ? '✅ Belépve: <b>' + esc(Gym.who) + '</b>. Az adataid a felhőbe mentődnek.' : Gym.pending ? '⏳ Fiók ellenőrzése…' : 'Belépés után az adataid a felhőbe mentődnek, és bármelyik telefonról elérhetők.'}</p>
     ${Gym.msg ? `<p class="err">${esc(Gym.msg)}</p>` : ''}
-    <div id="login-box" class="f" ${Gym.who ? 'hidden' : ''}>
+    <div id="login-box" class="f" ${Gym.who || Gym.pending ? 'hidden' : ''}>
       <button class="btn p" id="login-google" type="button">Belépés Google-fiókkal</button>
       <form id="login-form" class="f"><input type="email" id="login-email" placeholder="E-mail" autocomplete="email" required><input type="password" id="login-pass" placeholder="Jelszó (min. 6 karakter)" autocomplete="current-password" minlength="6" required>
       <div class="row"><button class="btn" type="submit">Belépés</button><button class="btn" type="button" id="login-register">Regisztráció</button><button class="btn s" type="button" id="login-reset">Elfelejtett jelszó</button></div></form>

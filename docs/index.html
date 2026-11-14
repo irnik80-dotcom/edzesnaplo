@@ -626,7 +626,7 @@ function renderAdmin() {
     return `<p class="sub">${list.length} felhasználó. Koppints egy névre a naplóhoz és a grafikonokhoz.</p>` + list.map((u) => `
       <button class="card" data-act="admuser" data-uid="${esc(u.uid)}" style="width:100%;text-align:left;display:flex;gap:12px;align-items:center">
         <span style="width:44px;height:44px;border-radius:50%;background:var(--grad);color:#fff;display:grid;place-items:center;font-weight:800">${esc((u.name || u.email || '?').slice(0, 1).toUpperCase())}</span>
-        <span class="grow"><b>${esc(u.name || u.email || u.uid)}</b><br><span class="meta">${u.count || 0} edzés${u.last ? ' · utoljára ' + esc(fmtDate(u.last)) : ''}</span></span><span class="meta">›</span></button>`).join('');
+        <span class="grow"><b>${esc(u.name || u.email || 'Névtelen felhasználó')}</b><br><span class="meta">${u.name || u.email ? '' : 'a neve az új verzió első megnyitásakor jelenik meg · '}${u.count || 0} befejezett edzés${u.last ? ' · utoljára ' + esc(fmtDate(u.last)) : ''}${u.at ? ' · aktív: ' + esc(fmtDate(u.at)) : ''}</span></span><span class="meta">›</span></button>`).join('');
   }
   let h = `<div class="row" style="margin-bottom:12px"><button class="btn s" data-act="admback">‹ Vissza</button><span class="grow"></span><div class="seg"><button data-act="admview" data-v="log" class="${ADM.view === 'log' ? 'on' : ''}">Napló</button><button data-act="admview" data-v="chart" class="${ADM.view === 'chart' ? 'on' : ''}">Haladás</button><button data-act="admview" data-v="plan" class="${ADM.view === 'plan' ? 'on' : ''}">Terv</button></div></div>`;
   if (ADM.err) return h + `<div class="empty">Nem sikerült betölteni (${esc(ADM.err)}).</div>`;
@@ -724,7 +724,7 @@ function renderChart(X) {
   for (const s of X.sessions) for (const it of s.items) if (!names.has(it.ex)) names.set(it.ex, it.name);
   for (const d of X.plan.days) for (const ex of d.ex) names.set(ex.id, ex.name);
   const used = [...names].filter(([id]) => X.sessions.some((s) => s.items.some((it) => it.ex === id)));
-  if (!used.length) return `<div class="empty">A grafikon az első elmentett edzés után jelenik meg.</div>`;
+  if (!used.length) return `<div class="empty">A grafikon az első befejezett edzés után jelenik meg.<br>Edzés végén nyomd meg az „Edzés befejezése” gombot, csak akkor kerül be a naplóba.</div>`;
   if (!used.some(([id]) => id === chartEx)) chartEx = used[0][0];
   let h = `<p class="sub">Gyakorlatonként, edzésről edzésre</p><select id="chartsel">${used.map(([id, n]) => `<option value="${esc(id)}"${id === chartEx ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select><div style="height:10px"></div>`;
   const rows = X.sessions.slice().reverse().map((s) => { const it = s.items.find((z) => z.ex === chartEx); return { s, it: it && Object.assign({}, it, { sets: it.sets.filter((z) => !z.wu) }) }; }).filter((x) => x.it && x.it.sets.length);

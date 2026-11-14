@@ -75,7 +75,15 @@ async function start() {
         delSession: (id) => F.deleteDoc(F.doc(col, id)),
         me: { name: u.displayName || '', email: u.email || '' },
         // admin (csak ha a szabályok engedik): mindenki listája, más naplója és terve
-        adminList: async () => (await F.getDocs(F.collection(db, 'gym'))).docs.filter((d) => d.id !== u.uid).map((d) => { const x = d.data(); return { uid: d.id, name: x.name || '', email: x.email || '', last: x.last || 0, count: x.count || 0 }; }),
+        adminList: async () => {
+          const docs = (await F.getDocs(F.collection(db, 'gym'))).docs.filter((d) => d.id !== u.uid);
+          return Promise.all(docs.map(async (d) => {
+            const x = d.data();
+            // a napló számát és utolsó dátumát magából a naplóból számoljuk
+            const ss = (await F.getDocs(F.collection(db, 'gym', d.id, 'sessions'))).docs.map((z) => z.data());
+            return { uid: d.id, name: x.name || '', email: x.email || '', count: ss.length, last: ss.reduce((m, z) => Math.max(m, z.date || 0), 0), at: x.at || 0 };
+          }));
+        },
         adminSessions: async (uid) => (await F.getDocs(F.collection(db, 'gym', uid, 'sessions'))).docs.map((d) => d.data()),
         adminDoc: async (uid) => { const s = await F.getDoc(F.doc(db, 'gym', uid)); return s.exists() ? s.data() : null; }
       };

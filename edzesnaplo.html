@@ -510,7 +510,7 @@ function beep() {
 // az aktív edzés eddigi kalóriája a pihenő-sávba
 function restKcal() {
   const d = S.plan.days.find((x) => started(S.cur[x.id])); if (!d) return '';
-  const v = liveKcal(d); return v != null ? ' · 🔥 ~' + v + ' kcal' : '';
+  const v = liveKcal(d); return v != null ? ' · 🔥 ~' + v + ' · nettó ~' + liveNet(d) + ' kcal' : '';
 }
 function startRest(sec) {
   if (!sec) return;
@@ -623,7 +623,7 @@ function finishDay(day) {
   if (!items.length) { toast('Még nincs kipipált sorozat.'); return; }
   const sess = { id: newId(), date: Date.now(), t0: started(c) ? c.t0 : Date.now(), day: day.id, dayName: day.name, items };
   const prs = findPRs(sess); if (prs.length) sess.prs = prs;
-  const kc = estKcal(sess, S.settings.bw); if (kc != null) sess.kcal = kc;
+  const kc = estKcal(sess, S.settings.bw); if (kc != null) { sess.kcal = kc; sess.kcalNet = Math.max(0, kc - restBurn(sess.t0, sess.date, S.settings.bw)); }
   if (c.order && c.order.length) sess.order = c.order.slice();
   S.sessions.unshift(sess);
   const moved = S.settings.autoOrder !== false && learnOrder(day);
@@ -783,12 +783,12 @@ const weekStart = (t) => { const d = new Date(t); d.setHours(0, 0, 0, 0); d.setD
 function weekCard(X) {
   const goal = S.settings.goal || 3, W = 7 * 86400000, now = weekStart(Date.now());
   const cnt = {}; const daysOn = new Set();
-  let wk = 0;
-  for (const s of X.sessions) { const w = weekStart(s.date); cnt[w] = (cnt[w] || 0) + 1; if (w === now) wk += kcalOf(s, !X.ro) || 0; const d = new Date(s.date); d.setHours(0, 0, 0, 0); daysOn.add(d.getTime()); }
+  let wk = 0, wkn = 0;
+  for (const s of X.sessions) { const w = weekStart(s.date); cnt[w] = (cnt[w] || 0) + 1; if (w === now) { wk += kcalOf(s, !X.ro) || 0; wkn += netOf(s, !X.ro) || 0; } const d = new Date(s.date); d.setHours(0, 0, 0, 0); daysOn.add(d.getTime()); }
   let streak = 0; for (let w = now - ((cnt[now] || 0) >= goal ? 0 : W); (cnt[w] || 0) >= goal; w -= W) streak++;
   const weeks = []; for (let k = 7; k >= 0; k--) weeks.push(now - k * W);
   const grid = weeks.map((w) => `<div class="wk${(cnt[w] || 0) >= goal ? ' met' : ''}"><span>${new Date(w).toLocaleDateString('hu-HU', { month: 'numeric', day: 'numeric' })}</span>${[0, 1, 2, 3, 4, 5, 6].map((i) => `<i class="${daysOn.has(w + i * 86400000) ? 'on' : ''}${w + i * 86400000 > Date.now() ? ' fut' : ''}"></i>`).join('')}</div>`).join('');
-  return `<div class="card weeks"><div class="row"><div class="grow"><b>Ezen a héten: ${cnt[now] || 0}/${goal} edzés${wk ? ` · 🔥 ~${wk} kcal` : ''}</b><div class="meta">${streak ? '🔥 ' + streak + ' hete egyhuzamban teljesítve' : 'Heti cél: ' + goal + ' edzés'}</div></div></div>
+  return `<div class="card weeks"><div class="row"><div class="grow"><b>Ezen a héten: ${cnt[now] || 0}/${goal} edzés${wk ? ' · ' + kcalTxt(wk, wkn || null) : ''}</b><div class="meta">${streak ? '🔥 ' + streak + ' hete egyhuzamban teljesítve' : 'Heti cél: ' + goal + ' edzés'}</div></div></div>
     <div class="wgrid"><div class="wk h"><span></span>${['H', 'K', 'Sz', 'Cs', 'P', 'Sz', 'V'].map((x) => `<b>${x}</b>`).join('')}</div>${grid}</div></div>`;
 }
 
@@ -873,7 +873,7 @@ function renderDay(day) {
   const sug = !started(c) && S.tab === suggestDay() && S.sessions.length;
   let h = `<section class="hero">${sug ? '<span class="sugg">★ Mai javaslat</span>' : ''}<div class="hd"><div class="ring"><svg viewBox="0 0 68 68" width="68" height="68"><circle cx="34" cy="34" r="28" stroke="rgba(255,255,255,.22)" stroke-width="7" fill="none"/><circle cx="34" cy="34" r="28" stroke="#fff" stroke-width="7" fill="none" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - pr.pct)).toFixed(1)}" style="transition:stroke-dashoffset .6s"/></svg><span>${Math.round(pr.pct * 100)}%</span></div>
     <div><h2>${esc(day.name)}</h2><div class="hs">${esc(day.sub || '')}</div></div></div>
-    <div class="stats"><div><b>${day.ex.length}</b>gyakorlat</div><div><b>${pr.done}/${pr.all}</b>sorozat</div><div><b id="elapsed">${started(c) ? elapsed(c.t0) : '–'}</b>${started(c) ? 'eltelt' : 'még nem kezdted'}</div>${started(c) ? `<div><b id="livekcal">${liveKcal(day) != null ? '~' + liveKcal(day) : '?'}</b>kcal 🔥</div>` : ''}</div>
+    <div class="stats"><div><b>${day.ex.length}</b>gyakorlat</div><div><b>${pr.done}/${pr.all}</b>sorozat</div><div><b id="elapsed">${started(c) ? elapsed(c.t0) : '–'}</b>${started(c) ? 'eltelt' : 'még nem kezdted'}</div>${started(c) ? `<div><b><span id="livekcal">${liveKcal(day) != null ? '~' + liveKcal(day) : '?'}</span><small style="font-size:14px;opacity:.75"> / <span id="livenet">${liveNet(day) != null ? liveNet(day) : '?'}</span></small></b>kcal 🔥 / nettó</div>` : ''}</div>
     ${!started(c) && !editMode && day.ex.length ? '<button class="hbtn" data-act="start">Edzés indítása</button>' : ''}</section>`;
   h += `<button class="edit" data-act="edit">${editMode ? '✓ Kész' : '✎ Szerkesztés'}</button><h2 style="margin-bottom:12px">Gyakorlatok</h2>`;
   if (!day.ex.length) h += `<div class="empty">Még nincs gyakorlat ezen a napon.<br>Nyomd meg a ✎ Szerkesztés gombot.</div>`;
@@ -912,7 +912,7 @@ function renderDay(day) {
   }
   return h;
 }
-setInterval(() => { const el = $('elapsed'), d = dayById(S.tab); if (el && d && started(S.cur[d.id])) { el.textContent = elapsed(S.cur[d.id].t0); const k = $('livekcal'), v = liveKcal(d); if (k && v != null) k.textContent = '~' + v; } }, 5000);
+setInterval(() => { const el = $('elapsed'), d = dayById(S.tab); if (el && d && started(S.cur[d.id])) { el.textContent = elapsed(S.cur[d.id].t0); const k = $('livekcal'), v = liveKcal(d); if (k && v != null) k.textContent = '~' + v; const kn = $('livenet'), vn = liveNet(d); if (kn && vn != null) kn.textContent = vn; } }, 5000);
 
 // ---------- pihenőidő gyors módosítása ----------
 let restEx = null;
@@ -931,8 +931,8 @@ $('done').addEventListener('change', (e) => {
   if (e.target.id !== 'donebw') return;
   const kg = +e.target.value; if (!kg) return;
   setBW(kg);
-  for (const x of S.sessions) if (x.kcal == null) { const k = estKcal(x, kg); if (k != null) { x.kcal = k; if (Gym.cloud) Gym.cloud.addSession(clone(x)).catch(console.warn); } }
-  save(); $('donekcal').textContent = '~' + (S.sessions[0].kcal ?? '?'); const box = e.target.closest('.f'); e.target.id = ''; if (box) setTimeout(() => box.isConnected && box.remove(), 0);
+  for (const x of S.sessions) if (x.kcal == null) { const k = estKcal(x, kg); if (k != null) { x.kcal = k; x.kcalNet = Math.max(0, k - restBurn(x.t0, x.date, kg)); if (Gym.cloud) Gym.cloud.addSession(clone(x)).catch(console.warn); } }
+  save(); $('donekcal').textContent = '~' + (S.sessions[0].kcal ?? '?'); if (S.sessions[0].kcalNet != null) $('donenet').textContent = '(nettó ~' + S.sessions[0].kcalNet + ')'; const box = e.target.closest('.f'); e.target.id = ''; if (box) setTimeout(() => box.isConnected && box.remove(), 0);
 });
 $('swapdlg').addEventListener('click', (e) => { const b = e.target.closest('[data-sw]'); if (b) doSwap(b.dataset.sw); });
 
@@ -1037,13 +1037,26 @@ function liveKcal(day) {
   return estKcal({ t0: c.t0, date: Date.now(), items }, S.settings.bw);
 }
 const kcalOf = (s, own) => s.kcal != null ? s.kcal : (own ? estKcal(s, S.settings.bw) : null);
+// nettó: az alapanyagcsere (1 MET = 1 kcal/kg/óra) nélkül, vagyis amit az edzés pluszban éget
+const restBurn = (t0, t1, bw) => Math.round(bw * Math.min(180, Math.max(1, (t1 - t0) / 60000)) / 60);
+function netOf(s, own) {
+  if (s.kcalNet != null) return s.kcalNet;
+  const tot = kcalOf(s, own); if (tot == null || !s.t0) return null;
+  if (own && S.settings.bw) return Math.max(0, tot - restBurn(s.t0, s.date, S.settings.bw));
+  return null;
+}
+function liveNet(day) {
+  const v = liveKcal(day), c = S.cur[day.id]; if (v == null) return null;
+  return Math.max(0, v - restBurn(c.t0, Date.now(), S.settings.bw));
+}
+const kcalTxt = (tot, net) => tot == null ? '' : '🔥 ~' + tot + ' kcal' + (net != null ? ' (nettó ~' + net + ')' : '');
 function celebrate(sess) {
   let sets = 0, vol = 0;
   for (const it of sess.items) for (const z of it.sets) if (!z.wu) { sets++; if (!it.bw) vol += (z.w || 0) * (z.r || 0) * (it.pair || it.side ? 2 : 1); }
   const mins = Math.max(1, Math.round((sess.date - sess.t0) / 60000));
   $('done').innerHTML = `<div style="font-size:44px">${sess.prs ? '🏅' : '🏆'}</div><h2>Szép munka!</h2><div class="meta">${esc(sess.dayName)} kész, elmentve a naplóba.</div>
     ${sess.prs ? `<ul class="prs">${sess.prs.map((x) => `<li>🏅 <b>${esc(x.name)}</b>: új rekord, ${esc(x.txt)}</li>`).join('')}</ul>` : ''}
-    <div class="big3"><div><b>${sets}</b>sorozat</div><div><b>${Math.round(toU(vol))}</b>${unit()} megmozgatva</div><div><b>${mins}</b>perc</div><div><b id="donekcal">${sess.kcal != null ? '~' + sess.kcal : '?'}</b>kcal 🔥</div></div>
+    <div class="big3"><div><b>${sets}</b>sorozat</div><div><b>${Math.round(toU(vol))}</b>${unit()} megmozgatva</div><div><b>${mins}</b>perc</div><div><b id="donekcal">${sess.kcal != null ? '~' + sess.kcal : '?'}</b>kcal 🔥 <span id="donenet">${sess.kcalNet != null ? '(nettó ~' + sess.kcalNet + ')' : ''}</span></div></div>
     ${sess.kcal == null ? `<div class="f" style="text-align:left;margin-bottom:14px"><label>A kalóriához add meg egyszer a testsúlyod (kg)<input type="number" id="donebw" inputmode="decimal" step="any"></label></div>` : ''}
     <button class="btn p big" onclick="this.closest('dialog').close()">Köszi!</button>`;
   $('done').showModal();
@@ -1064,7 +1077,7 @@ function renderLog(X) {
   let h = wk + '<p class="sub">' + X.sessions.length + ' edzés</p>';
   for (const s of X.sessions) {
     const mins = s.t0 ? Math.round((s.date - s.t0) / 60000) : 0, kc = kcalOf(s, !X.ro);
-    h += `<div class="card log"><div class="h"><b>${esc(fmtDate(s.date))} · ${esc(s.dayName || s.day)}</b>${mins ? `<span class="meta">${mins} perc${kc != null ? ' · 🔥 ~' + kc + ' kcal' : ''}</span>` : ''}${X.ro ? '' : `<button class="btn s w" data-act="logdel" data-id="${esc(s.id)}">🗑</button>`}</div><ul>`;
+    h += `<div class="card log"><div class="h"><b>${esc(fmtDate(s.date))} · ${esc(s.dayName || s.day)}</b>${mins ? `<span class="meta">${mins} perc${kc != null ? ' · ' + kcalTxt(kc, netOf(s, !X.ro)) : ''}</span>` : ''}${X.ro ? '' : `<button class="btn s w" data-act="logdel" data-id="${esc(s.id)}">🗑</button>`}</div><ul>`;
     for (const it of s.items) {
       const pe = exById(it.ex), u = pe ? exU(pe) : (it.u || unit());
       if (it.bw) { const bw = it.sets.find((x) => x.w != null); h += `<li>${esc(it.name)}: <span>${it.sets.map((x) => (x.wu ? 'B ' : '') + (x.r == null ? '?' : x.r)).join(', ')} ism.${bw ? ` (testsúly ${toU(bw.w)} ${unit()})` : ''}</span></li>`; }

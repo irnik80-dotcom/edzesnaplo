@@ -53,6 +53,7 @@ main{padding:8px 14px calc(150px + env(safe-area-inset-bottom));max-width:640px;
 .ex{animation:rise .35s both}
 @keyframes rise{from{opacity:0;transform:translateY(8px)}}
 .ex.done{border-color:color-mix(in srgb,var(--acc) 45%,transparent)}
+.ex.going{background:color-mix(in srgb,#3fb96b 13%,var(--solid));border-color:color-mix(in srgb,#3fb96b 45%,transparent)}
 .ex.muted{background:color-mix(in srgb,var(--card) 55%,transparent);box-shadow:none;border-color:var(--line)}
 .ex.muted .thumb{filter:grayscale(1) opacity(.55);width:46px;height:46px;border-radius:13px}
 .ex.muted h3{color:var(--mute);font-weight:600}
@@ -242,7 +243,7 @@ h1.pass.exp{color:var(--del)}
 <script>
 'use strict';
 const KEY = 'edzesnaplo.v1';
-const APPVER = '2026-11-15 08:14 UTC';
+const APPVER = '2026-11-15 08:19 UTC';
 const LB = 2.20462;
 const YT = (id) => 'https://www.youtube.com/shorts/' + id;
 
@@ -925,6 +926,9 @@ function renderDay(day) {
   const isDone = (ex) => { const w = setRows(day, ex).filter((s) => !s.wu); return w.length > 0 && w.every((s) => s.d); };
   const fold = !editMode && S.settings.doneLast !== false;
   let list = editMode ? day.ex : dayEx(day);
+  // éppen elkezdett (van kipipált sorozata, de még nincs kész) gyakorlat a lista tetejére
+  const isGoing = (ex) => !isDone(ex) && setRows(day, ex).some((s) => s.d);
+  if (!editMode) list = list.filter(isGoing).concat(list.filter((x) => !isGoing(x)));
   if (fold) list = list.filter((x) => !isDone(x)).concat(list.filter(isDone));
   list.forEach((ex, xi) => {
     const rows = setRows(day, ex);
@@ -933,7 +937,7 @@ function renderDay(day) {
     const id = ytId(exVid(ex));
     const thumb = id ? `style="background-image:url('https://i.ytimg.com/vi/${id}/hqdefault.jpg')"` : '';
     const folded = fold && doneAll && !openDone.has(ex.id);
-    h += `<article class="card ex${doneAll ? ' done' : ''}${fold && doneAll ? ' muted' : ''}${folded ? ' folded' : ''}" data-ex="${esc(ex.id)}" style="animation-delay:${xi * 40}ms"><div class="exhead">
+    h += `<article class="card ex${doneAll ? ' done' : ''}${!editMode && isGoing(ex) ? ' going' : ''}${fold && doneAll ? ' muted' : ''}${folded ? ' folded' : ''}" data-ex="${esc(ex.id)}" style="animation-delay:${xi * 40}ms"><div class="exhead">
       <button class="thumb${id ? '' : ' q'}" data-act="video" ${id ? `data-vid="${id}"` : ''} ${thumb} aria-label="Videó"><i>${id ? ICON.play : ICON.search}</i></button>
       <div class="exinfo"><h3>${esc(ex.name)}</h3><div class="chips"><span>${ex.sets}×${esc(ex.reps)}</span><span>${esc(fmtW(ex))}</span><button class="chip" data-act="restpick" title="Pihenőidő módosítása">⏱ ${ex.rest ? ex.rest + ' mp' : 'nincs pihenő'} ✎</button>${ex.up ? '<span class="up">⬆ emelhetsz</span>' : ''}${ex.alt ? '<span class="alt">csere</span>' : ''}${editMode ? '' : '<button class="swap" data-act="swap">⇄ foglalt a gép</button>'}</div></div>
       ${isBW(ex) ? '' : `<button class="uchip" data-act="exunit" title="Mértékegység ennél a gyakorlatnál">${exU(ex) === 'lb' ? 'font' : 'kg'}</button>`}</div>`;

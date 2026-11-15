@@ -1,6 +1,6 @@
 // Offline működés: az app fájljai és a Firebase-könyvtárak gyorsítótárban.
 // Új verzió kiadásakor a VER értékét növeld (a build-site.mjs ezt automatikusan megteszi).
-const VER = 'gym-202611151719';
+const VER = 'gym-202611152031';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './auth.js', './firebase-config.js'];
 
 self.addEventListener('install', (e) => {

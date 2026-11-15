@@ -542,9 +542,20 @@ function paceTxt() {
   if (pr.pct > 0.05 && pr.pct < 1) { const t = new Date(c.t0 + el / pr.pct * 60000); fin = ` · vége ~${t.toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' })}`; }
   return `<b>${done}%</b> kész · idő ${tpc}% (${target} percből) · <b>${st}</b>${fin}`;
 }
+// az aktív edzés eddig megmozgatott súlya (súly × ismétlés, bemelegítés nélkül), mindig kg-ban
+function liveVol(day) {
+  const c = S.cur[day.id]; if (!started(c)) return 0;
+  let vol = 0;
+  for (const ex of dayEx(day)) {
+    if (isBW(ex)) continue;
+    for (const z of c.sets[ex.id] || []) if (z && z.d && !z.wu) vol += (z.w || 0) * (z.r || 0) * (ex.pair || ex.side ? 2 : 1);
+  }
+  return Math.round(vol);
+}
 function restKcal() {
   const d = S.plan.days.find((x) => started(S.cur[x.id])); if (!d) return '';
-  const v = liveKcal(d); return v != null ? ' · 🔥 ~' + v + ' · nettó ~' + liveNet(d) + ' kcal' : '';
+  const vol = liveVol(d), v = liveKcal(d);
+  return (vol ? ' · 🏋 ' + vol.toLocaleString('hu-HU') + ' kg' : '') + (v != null ? ' · 🔥 ~' + v + ' · nettó ~' + liveNet(d) + ' kcal' : '');
 }
 function startRest(sec) {
   if (!sec) return;

@@ -1310,6 +1310,19 @@ render();
 
 // a weboldalon: telepíthető app (service worker) és bejelentkezés
 const onSite = /github\.io$|^localhost$|^127\.0\.0\.1$/.test(location.hostname);
+// új verzió figyelése: a version.json-t mindig a szerverről kérjük, és ha újabb, frissítünk
+async function checkVersion() {
+  try {
+    const v = (await (await fetch('version.json', { cache: 'no-store' })).json()).v;
+    if (!v || v === APPVER) return;
+    if (sessionStorage.getItem('edzesnaplo.upd') === v) return; // egyszer próbáljuk
+    if (Object.values(S.cur).some(started)) { toast('Új verzió érhető el – edzés után betöltődik'); return; }
+    sessionStorage.setItem('edzesnaplo.upd', v);
+    try { const ks = await caches.keys(); for (const k of ks) await caches.delete(k); const rs = await navigator.serviceWorker.getRegistrations(); for (const r of rs) await r.update(); } catch (e) {}
+    location.reload();
+  } catch (e) {}
+}
+if (onSite) { checkVersion(); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkVersion(); }); }
 if (onSite && 'serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((reg) => {
     reg.update();

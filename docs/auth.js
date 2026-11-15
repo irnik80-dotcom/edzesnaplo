@@ -17,6 +17,7 @@ const MSG = {
   'auth/network-request-failed': 'Nincs internetkapcsolat.',
   'auth/too-many-requests': 'Túl sok próbálkozás, próbáld újra később.'
 };
+MSG['standalone-google'] = 'A kezdőképernyős appban a Google-belépés nem mindig működik. Megoldás: írd be lent a Gmail-címed, nyomd meg az „Elfelejtett jelszó” gombot, a levélben állíts be egy jelszót, és utána lépj be e-maillel és jelszóval. Ugyanaz a fiók marad, minden adatoddal.';
 const msgOf = (e) => MSG[e && e.code] || ('A bejelentkezés nem sikerült: ' + ((e && e.message) || ''));
 
 start().catch((e) => { console.error(e); Gym.setWho(null, 'A bejelentkezés most nem érhető el.'); });
@@ -52,9 +53,13 @@ async function start() {
       // kezdőképernyőre tett appban (iPhone) a felugró ablak nem tud visszaszólni: ott átirányítás kell
       const standalone = window.navigator.standalone || matchMedia('(display-mode: standalone)').matches;
       run(async () => {
-        if (standalone) return A.signInWithRedirect(auth, prov);
+        // kezdőképernyős appban (iPhone) is a felugró ablak a megbízhatóbb; ha az nem megy, átirányítás
         try { await A.signInWithPopup(auth, prov); }
-        catch (x) { if (x && (x.code === 'auth/popup-blocked' || x.code === 'auth/operation-not-supported-in-this-environment')) return A.signInWithRedirect(auth, prov); throw x; }
+        catch (x) {
+          if (x && (x.code === 'auth/popup-blocked' || x.code === 'auth/operation-not-supported-in-this-environment')) return A.signInWithRedirect(auth, prov);
+          if (standalone && x && x.code !== 'auth/invalid-credential') throw Object.assign(new Error(), { code: 'standalone-google' });
+          throw x;
+        }
       });
     }
     else if (id === 'login-register') {

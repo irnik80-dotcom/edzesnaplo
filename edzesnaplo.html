@@ -53,6 +53,14 @@ main{padding:8px 14px calc(150px + env(safe-area-inset-bottom));max-width:640px;
 .ex{animation:rise .35s both}
 @keyframes rise{from{opacity:0;transform:translateY(8px)}}
 .ex.done{border-color:color-mix(in srgb,var(--acc) 45%,transparent)}
+.ex.muted{background:color-mix(in srgb,var(--card) 55%,transparent);box-shadow:none;border-color:var(--line)}
+.ex.muted .thumb{filter:grayscale(1) opacity(.55);width:46px;height:46px;border-radius:13px}
+.ex.muted h3{color:var(--mute);font-weight:600}
+.ex.muted .chips span,.ex.muted .chips button{opacity:.6}
+.ex.folded{padding:10px 14px}
+.ex.folded .chips,.ex.folded .note{display:none}
+.ex.folded .thumb i{display:none}
+.foldbar{display:block;width:100%;margin-top:8px;border:0;background:transparent;color:var(--mute);font-size:13px;font-weight:700;text-align:left;padding:2px 0}
 .exhead{display:flex;gap:12px;align-items:center}
 .thumb{flex:0 0 auto;width:62px;height:62px;border-radius:16px;border:0;background:var(--grad) center/cover no-repeat;position:relative;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)}
 .thumb::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(0,0,0,.45))}
@@ -892,6 +900,7 @@ function dayProgress(day) {
   return { done, all, pct: all ? done / all : 0 };
 }
 const elapsed = (t0) => { const m = Math.floor((Date.now() - t0) / 60000); return m < 60 ? m + ' perc' : Math.floor(m / 60) + ' ó ' + (m % 60) + ' p'; };
+const openDone = new Set(); // ideiglenesen kinyitott kész gyakorlatok
 function renderDay(day) {
   const c = S.cur[day.id], pr = dayProgress(day);
   const C = 2 * Math.PI * 28;
@@ -902,17 +911,28 @@ function renderDay(day) {
     ${!started(c) && !editMode && day.ex.length ? '<button class="hbtn" data-act="start">Edzés indítása</button>' : ''}</section>`;
   h += `<button class="edit" data-act="edit">${editMode ? '✓ Kész' : '✎ Szerkesztés'}</button><h2 style="margin-bottom:12px">Gyakorlatok</h2>`;
   if (!day.ex.length) h += `<div class="empty">Még nincs gyakorlat ezen a napon.<br>Nyomd meg a ✎ Szerkesztés gombot.</div>`;
-  (editMode ? day.ex : dayEx(day)).forEach((ex, xi) => {
+  const isDone = (ex) => { const w = setRows(day, ex).filter((s) => !s.wu); return w.length > 0 && w.every((s) => s.d); };
+  const fold = !editMode && S.settings.doneLast !== false;
+  let list = editMode ? day.ex : dayEx(day);
+  if (fold) list = list.filter((x) => !isDone(x)).concat(list.filter(isDone));
+  list.forEach((ex, xi) => {
     const rows = setRows(day, ex);
     const work = rows.filter((s) => !s.wu);
     const doneAll = work.length > 0 && work.every((s) => s.d);
     const id = ytId(exVid(ex));
     const thumb = id ? `style="background-image:url('https://i.ytimg.com/vi/${id}/hqdefault.jpg')"` : '';
-    h += `<article class="card ex${doneAll ? ' done' : ''}" data-ex="${esc(ex.id)}" style="animation-delay:${xi * 40}ms"><div class="exhead">
+    const folded = fold && doneAll && !openDone.has(ex.id);
+    h += `<article class="card ex${doneAll ? ' done' : ''}${fold && doneAll ? ' muted' : ''}${folded ? ' folded' : ''}" data-ex="${esc(ex.id)}" style="animation-delay:${xi * 40}ms"><div class="exhead">
       <button class="thumb${id ? '' : ' q'}" data-act="video" ${id ? `data-vid="${id}"` : ''} ${thumb} aria-label="Videó"><i>${id ? ICON.play : ICON.search}</i></button>
       <div class="exinfo"><h3>${esc(ex.name)}</h3><div class="chips"><span>${ex.sets}×${esc(ex.reps)}</span><span>${esc(fmtW(ex))}</span><button class="chip" data-act="restpick" title="Pihenőidő módosítása">⏱ ${ex.rest ? ex.rest + ' mp' : 'nincs pihenő'} ✎</button>${ex.up ? '<span class="up">⬆ emelhetsz</span>' : ''}${ex.alt ? '<span class="alt">csere</span>' : ''}${editMode ? '' : '<button class="swap" data-act="swap">⇄ foglalt a gép</button>'}</div></div>
       ${isBW(ex) ? '' : `<button class="uchip" data-act="exunit" title="Mértékegység ennél a gyakorlatnál">${exU(ex) === 'lb' ? 'font' : 'kg'}</button>`}</div>`;
     if (ex.note) h += `<div class="note">${esc(ex.note)}</div>`;
+    if (folded) {
+      const work = rows.filter((s) => !s.wu), last = work[work.length - 1];
+      h += `<button class="foldbar" data-act="unfold">✓ Kész – ${work.length} sorozat${last && last.w != null && !isBW(ex) ? ', ' + toU(last.w, exU(ex)) + ' ' + exU(ex) : ''} · megnyitás</button></article>`;
+      return;
+    }
+    if (fold && doneAll) h += `<button class="foldbar" data-act="refold">▲ Összecsukás</button>`;
     if (!editMode) h += prevLine(ex);
     if (editMode) {
       h += `<div class="tools"><button class="btn s" data-act="up" data-i="${xi}" ${xi ? '' : 'disabled'}>↑</button><button class="btn s" data-act="down" data-i="${xi}" ${xi < day.ex.length - 1 ? '' : 'disabled'}>↓</button><span class="grow"></span><button class="btn s" data-act="exedit" data-i="${xi}">✎ Módosítás</button></div>`;
@@ -1162,6 +1182,7 @@ function renderSettings() {
     <label>Testsúly (${unit()})${S.settings.bwAt ? ', megadva: ' + new Date(S.settings.bwAt).toLocaleDateString('hu-HU') : ''}<input type="number" id="bw" step="any" min="0" inputmode="decimal" value="${S.settings.bw == null ? '' : toU(S.settings.bw)}"></label>
     <label>Bérlet érvényes eddig (a lejárat napja még jó)<input type="date" id="pass" value="${esc(S.settings.pass || '')}"></label>
     <div class="row"><button class="btn s" data-act="passadd" data-m="1">+1 hónap</button><button class="btn s" data-act="passadd" data-m="3">+3 hónap</button>${S.settings.pass ? '<span class="grow"></span><button class="btn s w" data-act="passdel">Nincs bérlet</button>' : ''}</div>
+    <label class="ck" style="color:var(--ink)"><input type="checkbox" id="donelast" ${S.settings.doneLast !== false ? 'checked' : ''}> Kész gyakorlatok a lista végére, halványan és összecsukva</label>
     <label class="ck" style="color:var(--ink)"><input type="checkbox" id="soundon" ${S.settings.sound !== false ? 'checked' : ''}> Hangjelzés a pihenő végén (a háttérzenét nem állítja meg)</label>
     <label class="ck" style="color:var(--ink)"><input type="checkbox" id="autoorder" ${S.settings.autoOrder !== false ? 'checked' : ''}> Gyakorlatok sorrendje igazodjon ahhoz, ahogy ténylegesen edzek</label>
     <label>Heti cél (edzés / hét)<input type="number" id="goal" min="1" max="7" inputmode="numeric" value="${S.settings.goal || 3}"></label>
@@ -1232,6 +1253,8 @@ $('main').addEventListener('click', (e) => {
     case 'delset': { const a = curArr(day, ex); let k = a.length - 1; while (k > 0 && a[k].d) k--; if (k >= 0) a.splice(k, 1); save(); render(); break; }
     case 'video': openVideo(ex); break;
     case 'restpick': openRest(ex); break;
+    case 'unfold': openDone.add(ex.id); render(); break;
+    case 'refold': openDone.delete(ex.id); render(); break;
     case 'swap': openSwap(day, ex); break;
     case 'start': { startCur(day); save(); render(); toast('Indulhat! 💪'); break; }
     case 'discard': if (confirm('Elveted a mostani edzést? A kipipált sorozatok törlődnek.')) { delete S.cur[day.id]; save(); render(); } break;
@@ -1269,6 +1292,7 @@ $('main').addEventListener('change', (e) => {
   const t = e.target;
   if (t.id === 'chartsel') { chartEx = t.value; render(); return; }
   if (t.id === 'pass') { S.settings.pass = t.value || ''; save(); render(); return; }
+  if (t.id === 'donelast') { S.settings.doneLast = t.checked; save(); return; }
   if (t.id === 'soundon') { S.settings.sound = t.checked; save(); return; }
   if (t.id === 'autoorder') { S.settings.autoOrder = t.checked; save(); return; }
   if (t.id === 'goal') { S.settings.goal = Math.max(1, Math.min(7, +t.value || 3)); save(); return; }

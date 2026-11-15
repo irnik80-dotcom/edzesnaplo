@@ -496,15 +496,21 @@ const dayById = (id) => S.plan.days.find((d) => d.id === id);
 
 // ---------- pihenőidő ----------
 let restEnd = 0, restLen = 0, restTick = null, audio = null;
+// a hangjelzés a háttérzenével keveredjen (YouTube Music, Spotify), ne állítsa meg
+try { if ('audioSession' in navigator) navigator.audioSession.type = 'ambient'; } catch (e) {}
 function beep() {
+  if (S.settings.sound === false) return;
   try {
     audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    audio.resume();
     [0, 0.25, 0.5].forEach((d) => {
       const o = audio.createOscillator(), g = audio.createGain();
       o.frequency.value = 880; o.connect(g); g.connect(audio.destination);
       g.gain.setValueAtTime(0.25, audio.currentTime + d); g.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + d + 0.2);
       o.start(audio.currentTime + d); o.stop(audio.currentTime + d + 0.21);
     });
+    // utána elengedjük a hangot, hogy ne tartsa foglalva a lejátszást
+    const a = audio; audio = null; setTimeout(() => { try { a.close(); } catch (e) {} }, 1200);
   } catch (e) {}
 }
 // az aktív edzés eddigi kalóriája a pihenő-sávba
@@ -514,7 +520,6 @@ function restKcal() {
 }
 function startRest(sec) {
   if (!sec) return;
-  try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); audio.resume(); } catch (e) {}
   restLen = sec; restEnd = Date.now() + sec * 1000;
   $('rest').hidden = false; $('rest').classList.remove('end');
   clearInterval(restTick); restTick = setInterval(tickRest, 250); tickRest();
@@ -1137,6 +1142,7 @@ function renderSettings() {
     <label>Testsúly (${unit()})${S.settings.bwAt ? ', megadva: ' + new Date(S.settings.bwAt).toLocaleDateString('hu-HU') : ''}<input type="number" id="bw" step="any" min="0" inputmode="decimal" value="${S.settings.bw == null ? '' : toU(S.settings.bw)}"></label>
     <label>Bérlet érvényes eddig (a lejárat napja még jó)<input type="date" id="pass" value="${esc(S.settings.pass || '')}"></label>
     <div class="row"><button class="btn s" data-act="passadd" data-m="1">+1 hónap</button><button class="btn s" data-act="passadd" data-m="3">+3 hónap</button>${S.settings.pass ? '<span class="grow"></span><button class="btn s w" data-act="passdel">Nincs bérlet</button>' : ''}</div>
+    <label class="ck" style="color:var(--ink)"><input type="checkbox" id="soundon" ${S.settings.sound !== false ? 'checked' : ''}> Hangjelzés a pihenő végén (a háttérzenét nem állítja meg)</label>
     <label class="ck" style="color:var(--ink)"><input type="checkbox" id="autoorder" ${S.settings.autoOrder !== false ? 'checked' : ''}> Gyakorlatok sorrendje igazodjon ahhoz, ahogy ténylegesen edzek</label>
     <label>Heti cél (edzés / hét)<input type="number" id="goal" min="1" max="7" inputmode="numeric" value="${S.settings.goal || 3}"></label>
     <label>Alap pihenőidő (mp), ha a gyakorlatnál nincs megadva<input type="number" id="defrest" min="0" step="5" value="${S.settings.rest}"></label></div>`;
@@ -1243,6 +1249,7 @@ $('main').addEventListener('change', (e) => {
   const t = e.target;
   if (t.id === 'chartsel') { chartEx = t.value; render(); return; }
   if (t.id === 'pass') { S.settings.pass = t.value || ''; save(); render(); return; }
+  if (t.id === 'soundon') { S.settings.sound = t.checked; save(); return; }
   if (t.id === 'autoorder') { S.settings.autoOrder = t.checked; save(); return; }
   if (t.id === 'goal') { S.settings.goal = Math.max(1, Math.min(7, +t.value || 3)); save(); return; }
   if (t.id === 'bw') { setBW(fromU(t.value)); save(); render(); return; }

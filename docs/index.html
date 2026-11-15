@@ -153,6 +153,15 @@ svg text{font-size:11px;fill:var(--mute)}
 .restgrid button{border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:12px 0;font-weight:800}
 .restgrid button.on{background:var(--grad);color:#fff;border-color:transparent}
 button.chip{border:0;font:inherit;font-size:12px;font-weight:700;padding:3px 8px;border-radius:8px;background:var(--soft);color:var(--acc)}
+.libcats{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.libcats button{flex:0 0 auto;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700}
+.libcats button.on{background:var(--grad);color:#fff;border-color:transparent}
+.libres{max-height:34vh;overflow-y:auto;border:1px solid var(--line);border-radius:14px;background:var(--bg)}
+.libres button{display:flex;width:100%;gap:8px;align-items:center;border:0;border-bottom:1px solid var(--line);background:transparent;padding:10px 12px;text-align:left;font-size:15px}
+.libres button:last-child{border-bottom:0}
+.libres button span{margin-left:auto;font-size:11px;font-weight:800;color:var(--acc);background:var(--soft);border-radius:6px;padding:2px 7px}
+.libres button.on{background:var(--soft)}
+.libres .none{padding:12px;color:var(--mute);font-size:14px}
 .err{color:var(--del);font-size:14px;min-height:1em}
 #done{text-align:center;overflow:visible}
 #done h2{font-size:28px;margin:8px 0 4px}
@@ -215,7 +224,11 @@ h1.pass.exp{color:var(--del)}
 <dialog id="exdlg">
   <form class="f" id="exform" method="dialog">
     <b id="exdlg-title">Gyakorlat</b>
-    <div class="two" id="libpick"><label>Kategória<select id="libcat"></select></label><label>Gyakorlat<select id="libex"></select></label></div>
+    <div id="libpick" class="f">
+      <input type="search" id="libq" placeholder="🔍 Keresés: írd be a gyakorlat nevét…" autocomplete="off" autocapitalize="off">
+      <div class="libcats" id="libcats"></div>
+      <div class="libres" id="libres"></div>
+    </div>
     <label>Név<input type="text" name="name" required></label>
     <div class="two">
       <label>Sorozat<input type="number" name="sets" min="1" max="20" step="1" inputmode="numeric" required></label>
@@ -243,7 +256,7 @@ h1.pass.exp{color:var(--del)}
 <script>
 'use strict';
 const KEY = 'edzesnaplo.v1';
-const APPVER = '2026-11-15 13:51 UTC';
+const APPVER = '2026-11-15 17:19 UTC';
 const LB = 2.20462;
 const YT = (id) => 'https://www.youtube.com/shorts/' + id;
 
@@ -988,7 +1001,7 @@ function renderDay(day) {
     <div><h2>${esc(day.name)}</h2><div class="hs">${esc(day.sub || '')}</div></div></div>
     <div class="stats"><div><b>${day.ex.length}</b>gyakorlat</div><div><b>${pr.done}/${pr.all}</b>sorozat</div><div><b id="elapsed">${started(c) ? elapsed(c.t0) : '–'}</b>${started(c) ? 'eltelt' : 'még nem kezdted'}</div>${started(c) ? `<div><b><span id="livekcal">${liveKcal(day) != null ? '~' + liveKcal(day) : '?'}</span><small style="font-size:14px;opacity:.75"> / <span id="livenet">${liveNet(day) != null ? liveNet(day) : '?'}</span></small></b>kcal 🔥 / nettó</div>` : ''}</div>
     ${!started(c) && !editMode && day.ex.length ? '<button class="hbtn" data-act="start">Edzés indítása</button>' : ''}</section>`;
-  h += `<button class="edit" data-act="edit">${editMode ? '✓ Kész' : '✎ Szerkesztés'}</button><h2 style="margin-bottom:12px">Gyakorlatok</h2>`;
+  h += `<button class="edit" data-act="edit">${editMode ? '✓ Kész' : '✎ Szerkesztés'}</button><button class="edit" data-act="exnew" style="margin-right:6px">+ Gyakorlat</button><h2 style="margin-bottom:12px">Gyakorlatok</h2>`;
   if (!day.ex.length) h += `<div class="empty">Még nincs gyakorlat ezen a napon.<br>Nyomd meg a ✎ Szerkesztés gombot.</div>`;
   const isDone = (ex) => { const w = setRows(day, ex).filter((s) => !s.wu); return w.length > 0 && w.every((s) => s.d); };
   const fold = !editMode && S.settings.doneLast !== false;
@@ -1413,19 +1426,25 @@ function importFile(f) {
   }).catch((e) => alert('A fájl nem tölthető be: ' + e.message));
 }
 
-// gyakorlattár: kategória → gyakorlat
+// gyakorlattár: kereső (ékezet nélkül is) + kategória-szűrő
+const fold = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+let libCat = 'Mind', libSel = -1;
 function fillLib() {
-  const c = $('libcat').value;
-  $('libex').innerHTML = '<option value="">– válassz –</option>' + LIBRARY.map((l, i) => l.cat === c ? `<option value="${i}">${esc(l.name)}</option>` : '').join('') + '<option value="own">Saját gyakorlat…</option>';
+  const cats = ['Mind'].concat([...new Set(LIBRARY.map((l) => l.cat))]);
+  $('libcats').innerHTML = cats.map((c) => `<button type="button" data-cat="${esc(c)}" class="${c === libCat ? 'on' : ''}">${esc(c)}</button>`).join('');
+  const q = fold($('libq').value).split(/\s+/).filter(Boolean);
+  const hits = LIBRARY.map((l, i) => [l, i]).filter(([l]) => (libCat === 'Mind' || l.cat === libCat) && q.every((w) => fold(l.name + ' ' + l.q + ' ' + l.cat).includes(w)));
+  $('libres').innerHTML = hits.map(([l, i]) => `<button type="button" data-li="${i}" class="${i === libSel ? 'on' : ''}">${esc(l.name)}<span>${esc(l.cat)}</span></button>`).join('')
+    + (hits.length ? '' : `<div class="none">Nincs ilyen a gyakorlattárban. Írd be lent a nevét saját gyakorlatként.</div>`);
 }
-$('libcat').addEventListener('change', fillLib);
-$('libex').addEventListener('change', () => {
-  const v = $('libex').value, f = $('exform');
-  if (v === 'own') { f.name.value = ''; f.video.value = ''; f.name.focus(); return; }
-  const l = LIBRARY[+v]; if (!l) return;
+$('libq').addEventListener('input', fillLib);
+$('libcats').addEventListener('click', (e) => { const b = e.target.closest('[data-cat]'); if (b) { libCat = b.dataset.cat; fillLib(); } });
+$('libres').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-li]'); if (!b) return;
+  const l = LIBRARY[+b.dataset.li], f = $('exform'); libSel = +b.dataset.li;
   f.name.value = l.name; f.sets.value = l.sets; f.reps.value = l.reps; f.rest.value = l.rest;
   f.unit.value = ''; f.w.value = l.w == null ? '' : toU(l.w); f.pair.checked = !!l.pair; f.side.checked = !!l.side; f.video.value = l.video; f.note.value = '';
-  f.dataset.q = l.q;
+  f.dataset.q = l.q; fillLib();
 });
 
 // gyakorlat szerkesztése
@@ -1441,12 +1460,9 @@ function openEx(day, i) {
   $('exdlg-w').textContent = 'Súly (a választott mértékegységben), üresen: testsúly';
   $('exdel').hidden = i < 0;
   $('libpick').hidden = i >= 0; delete f.dataset.q;
-  if (i < 0) {
-    const cats = [...new Set(LIBRARY.map((l) => l.cat))];
-    $('libcat').innerHTML = cats.map((c) => `<option>${esc(c)}</option>`).join('');
-    fillLib();
-  }
+  if (i < 0) { $('libq').value = ''; libCat = 'Mind'; libSel = -1; fillLib(); }
   $('exdlg').showModal();
+  if (i < 0) setTimeout(() => $('libq').focus(), 50);
 }
 $('exdlg').addEventListener('close', () => {
   if ($('exdlg').returnValue !== 'ok' || !exCtx) return;
@@ -1460,7 +1476,7 @@ $('exdlg').addEventListener('close', () => {
   });
   if (!ex.video) ex.video = vidFor(ex);
   if (ex.w !== oldW) ex.up = false;
-  if (i < 0) day.ex.push(ex);
+  if (i < 0) { day.ex.push(ex); setTimeout(() => { const el = document.querySelector(`[data-ex="${ex.id}"]`); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); toast('Hozzáadva: ' + ex.name); }, 100); }
   save(); render();
 });
 $('exdel').onclick = () => {

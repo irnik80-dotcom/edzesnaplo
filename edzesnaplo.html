@@ -50,7 +50,7 @@ main{padding:8px 14px calc(150px + env(safe-area-inset-bottom));max-width:640px;
 .ring span{position:absolute;inset:0;display:grid;place-items:center;font-weight:800;font-size:15px}
 .hbtn{position:relative;z-index:1;margin-top:16px;width:100%;border:0;border-radius:16px;padding:13px;font-weight:800;background:rgba(255,255,255,.95);color:#2f3b60}
 .edit{float:right;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700;color:var(--acc)}
-.ex{animation:rise .35s both}
+.ex{animation:rise .35s both;scroll-margin-top:calc(12px + env(safe-area-inset-top))}
 @keyframes rise{from{opacity:0;transform:translateY(8px)}}
 .ex.done{border-color:color-mix(in srgb,var(--acc) 45%,transparent)}
 .ex.going{background:color-mix(in srgb,#3fb96b 13%,var(--solid));border-color:color-mix(in srgb,#3fb96b 45%,transparent)}
@@ -1259,7 +1259,12 @@ $('main').addEventListener('click', (e) => {
       s.d = s.d ? 0 : 1;
       if (navigator.vibrate) navigator.vibrate(12);
       save(); render();
-      if (s.d) { const rr = ex.rest == null ? S.settings.rest : ex.rest; startRest(s.wu ? Math.min(rr, 60) : rr); }
+      if (s.d) {
+        const rr = ex.rest == null ? S.settings.rest : ex.rest; startRest(s.wu ? Math.min(rr, 60) : rr);
+        // az oldal ugorjon a lista tetejére, ahol az éppen futó gyakorlat van
+        const top = document.querySelector('article.ex');
+        if (top) requestAnimationFrame(() => top.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+      }
       break;
     }
     case 'finish': finishDay(day); break;

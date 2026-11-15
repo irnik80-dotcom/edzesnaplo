@@ -232,7 +232,7 @@ h1.pass.exp{color:var(--del)}
 <script>
 'use strict';
 const KEY = 'edzesnaplo.v1';
-const APPVER = '2026-11-15 05:57 UTC';
+const APPVER = '2026-11-15 06:02 UTC';
 const LB = 2.20462;
 const YT = (id) => 'https://www.youtube.com/shorts/' + id;
 
@@ -507,6 +507,11 @@ function beep() {
     });
   } catch (e) {}
 }
+// az aktív edzés eddigi kalóriája a pihenő-sávba
+function restKcal() {
+  const d = S.plan.days.find((x) => started(S.cur[x.id])); if (!d) return '';
+  const v = liveKcal(d); return v != null ? ' · 🔥 ~' + v + ' kcal' : '';
+}
 function startRest(sec) {
   if (!sec) return;
   try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); audio.resume(); } catch (e) {}
@@ -518,14 +523,14 @@ function tickRest() {
   const left = (restEnd - Date.now()) / 1000;
   if (left <= 0) {
     clearInterval(restTick);
-    $('rest-t').textContent = 'Mehet!'; $('rest-l').textContent = 'Kész a pihenő'; $('rest-ring').style.strokeDashoffset = 0; $('rest').classList.add('end');
+    $('rest-t').textContent = 'Mehet!'; $('rest-l').textContent = 'Kész a pihenő' + restKcal(); $('rest-ring').style.strokeDashoffset = 0; $('rest').classList.add('end');
     if (navigator.vibrate) navigator.vibrate([300, 150, 300, 150, 300]);
     beep();
     setTimeout(() => { if (restEnd <= Date.now()) $('rest').hidden = true; }, 4000);
     return;
   }
   $('rest-t').textContent = mmss(Math.ceil(left));
-  $('rest-l').textContent = 'Pihenő'; $('rest-ring').style.strokeDashoffset = (150.8 * (1 - left / restLen)).toFixed(1);
+  $('rest-l').textContent = 'Pihenő' + restKcal(); $('rest-ring').style.strokeDashoffset = (150.8 * (1 - left / restLen)).toFixed(1);
 }
 $('rest-plus').onclick = () => { restEnd += 15000; restLen += 15; if ($('rest').classList.contains('end')) startRest(15); };
 $('rest-x').onclick = () => { clearInterval(restTick); restEnd = 0; $('rest').hidden = true; };
@@ -907,7 +912,7 @@ function renderDay(day) {
   }
   return h;
 }
-setInterval(() => { const el = $('elapsed'), d = dayById(S.tab); if (el && d && started(S.cur[d.id])) { el.textContent = elapsed(S.cur[d.id].t0); const k = $('livekcal'), v = liveKcal(d); if (k && v != null) k.textContent = '~' + v; } }, 20000);
+setInterval(() => { const el = $('elapsed'), d = dayById(S.tab); if (el && d && started(S.cur[d.id])) { el.textContent = elapsed(S.cur[d.id].t0); const k = $('livekcal'), v = liveKcal(d); if (k && v != null) k.textContent = '~' + v; } }, 5000);
 
 // ---------- pihenőidő gyors módosítása ----------
 let restEx = null;
@@ -1019,8 +1024,10 @@ function estKcal(sess, bw) {
   const min = Math.min(180, Math.max(1, (sess.date - sess.t0) / 60000));
   let work = 0, heavy = 0;
   for (const it of sess.items) for (const z of it.sets) if (!z.wu) { work++; if (HEAVY.test(it.name)) heavy++; }
-  let met = work ? 3.5 + 1.5 * heavy / work : 3.5;           // 3,5 általános súlyzós; 5,0 felhúzás/guggolás
-  if (work && min / work < 2) met += 0.5;                    // tömör edzés, rövid pihenők
+  // alap ~3–3,5 MET (több gyakorlat, 8–15 ismétlés); minél több sorozat fér 10 percbe, annál intenzívebb;
+  // a felhúzás/guggolás/lábtolás arányában +1,5 (5,0 MET)
+  const per10 = work / min * 10;
+  const met = Math.min(6, 3.0 + Math.min(1, 0.1 * per10) + (work ? 1.5 * heavy / work : 0));
   return Math.round(met * bw * min / 60);
 }
 // élő kalória az edzés közben: az eddig kipipált sorozatok és az eltelt idő alapján

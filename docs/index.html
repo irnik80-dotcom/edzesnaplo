@@ -256,7 +256,7 @@ h1.pass.exp{color:var(--del)}
 <script>
 'use strict';
 const KEY = 'edzesnaplo.v1';
-const APPVER = '2026-11-16 05:54 UTC';
+const APPVER = '2026-11-16 05:58 UTC';
 const LB = 2.20462;
 const YT = (id) => 'https://www.youtube.com/shorts/' + id;
 
@@ -423,38 +423,47 @@ const ATTILA_ABC = { days: [
   const vm = new Map(); for (const ex of ATTILA_FULL.days[0].ex) { vm.set(ex.name, ex.video); for (const x of ex.alts || []) vm.set(x.name, x.video); }
   for (const d of ATTILA_ABC.days) for (const ex of d.ex) { if (!ex.video && vm.get(ex.name)) ex.video = vm.get(ex.name); for (const x of ex.alts || []) if (!x.video && vm.get(x.name)) x.video = vm.get(x.name); }
 }
-// Attila – egész test A/B/C, heti 3 (izomcsoportonként ~9 szett/hét; hát ~19, váll ~15, bicepsz 9)
+// Attila – egész test A/B/C, heti 3 (A, B hétköznap ~90 perc, C vasárnap ~120 perc)
 const ATTILA_FB = { days: [
-  { id: 'fa', tab: 'A', name: 'A nap', sub: 'chin-up · lehúzás · lábtolás · mell · kar', min: 80, ex: [
+  { id: 'fa', tab: 'A', name: 'A nap', sub: 'chin-up · lehúzás · láb · mell · váll · kar · hétköznap', min: 90, ex: [
     { id: 'fa1', name: 'Chin-up', sets: 3, reps: '1–3', w: null, rest: 120, q: 'chin up', note: 'Mindig az elején, friss állapotban.' },
     { id: 'fa2', name: 'Lehúzás széles fogással', sets: 3, reps: '8–10', w: 42, rest: 90, q: 'wide grip lat pulldown' },
     { id: 'fa3', name: 'Lábtolás gépen', sets: 3, reps: '10–12', w: 104.33, unit: 'lb', rest: 120, q: 'leg press form' },
     { id: 'fa4', name: 'Combhajlító gép', sets: 3, reps: '10–12', w: 65, rest: 75, q: 'seated leg curl machine' },
-    { id: 'fa5', name: 'Fekvenyomás kézi súlyzóval', sets: 3, reps: '8–10', w: 12.5, pair: true, rest: 120, q: 'dumbbell bench press form', note: 'Könyök kb. 45°-ban a törzshöz, fájdalommentes tartományban.', alts: [{ name: 'Tárogató gép szemből', q: 'pec deck fly machine', w: 45.36, unit: 'lb' }] },
+    { id: 'fa5', name: 'Fekvenyomás kézi súlyzóval', sets: 3, reps: '8–10', w: 12.5, pair: true, rest: 120, q: 'dumbbell bench press form', note: 'Könyök kb. 45°-ban a törzshöz, fájdalommentes tartományban.' },
+    { id: 'fa10', name: 'Tárogató gép szemből', sets: 3, reps: '10–12', w: 45.36, unit: 'lb', rest: 75, q: 'pec deck fly machine' },
     { id: 'fa6', name: 'Kábeles oldalemelés', sets: 3, reps: '12–15', w: 5, side: true, rest: 60, q: 'cable lateral raise', note: 'Könnyű súly, lassan; a váll miatt csak fájdalommentesen.' },
+    { id: 'fa11', name: 'Face pull', sets: 3, reps: '15', w: 20, rest: 60, q: 'face pull cable', note: 'A vállnak is jót tesz.' },
     { id: 'fa7', name: 'Bicepszgép („két szarvas”)', sets: 3, reps: '10–12', w: 40, rest: 60, q: 'biceps curl machine' },
     { id: 'fa8', name: 'Tricepsz letolás', sets: 3, reps: '10–12', w: 25, rest: 60, q: 'triceps pushdown' },
     { id: 'fa9', name: 'Vádli ülve („lovacskázós”)', sets: 3, reps: '8–10', w: 60, wu: 1, rest: 60, q: 'seated calf raise machine' }
   ] },
-  { id: 'fb', tab: 'B', name: 'B nap', sub: 'felhúzás · evezés · combfeszítő · ferde mell · bicepsz · has', min: 85, ex: [
+  { id: 'fb', tab: 'B', name: 'B nap', sub: 'felhúzás · evezés · láb · ferde mell · váll · kar · has · hétköznap', min: 90, ex: [
     { id: 'fb1', name: 'Felhúzás', sets: 3, reps: '5', w: 70, wu: 2, rest: 180, q: 'conventional deadlift form', note: 'Bemelegítés után 3 sorozat ugyanazzal a súllyal. Ha mindhárom 5 megvan, jöhet +5 kg.', alts: [{ name: 'Román felhúzás', q: 'romanian deadlift form', w: 50 }] },
     { id: 'fb2', name: 'Gépi evezés szűk fogással', sets: 3, reps: '10–12', w: 49, rest: 90, q: 'seated cable row v bar', alts: [{ name: 'Gépi evezés széles fogással', q: 'wide grip seated cable row', w: 49 }] },
     { id: 'fb3', name: 'Tárcsás lehúzó gép', sets: 3, reps: '10', w: 20, side: true, rest: 90, q: 'plate loaded lat pulldown', alts: [{ name: 'Kábeles lehúzás (váltott fogással)', q: 'wide grip lat pulldown', w: 45 }] },
+    { id: 'fb10', name: 'Egykezes súlyzós evezés', sets: 3, reps: '10', w: 22, side: true, rest: 75, q: 'one arm dumbbell row' },
     { id: 'fb4', name: 'Combfeszítő gép (lábnyújtás)', sets: 3, reps: '10–12', w: 70, rest: 75, q: 'leg extension machine' },
     { id: 'fb5', name: 'Tárcsás ferde mellnyomó gép', sets: 3, reps: '8–10', w: 20, side: true, rest: 120, q: 'incline plate loaded chest press', alts: [{ name: 'Ferde padon nyomás', q: 'incline dumbbell press form', w: 15, pair: true }] },
     { id: 'fb6', name: 'Tárogató gép háttal (fordított)', sets: 3, reps: '12–15', w: 63.5, unit: 'lb', rest: 60, q: 'reverse pec deck rear delt fly' },
     { id: 'fb7', name: 'Oldalemelés', sets: 3, reps: '12–15', w: 6, pair: true, rest: 60, q: 'seated dumbbell lateral raise', note: 'Ülve, könnyű súllyal, lendítés nélkül.' },
     { id: 'fb9', name: 'Bicepsz kábelen', sets: 3, reps: '10–12', w: 20, rest: 60, q: 'cable curl form' },
+    { id: 'fb11', name: 'Tricepsz letolás kötéllel', sets: 3, reps: '12', w: 20, rest: 60, q: 'rope triceps pushdown' },
     { id: 'fb8', name: 'Kábeles hasprés térdelve', sets: 3, reps: '12–15', w: 30, rest: 60, q: 'kneeling cable crunch' }
   ] },
-  { id: 'fc', tab: 'C', name: 'C nap', sub: 'pull-up · lat gép · láb · mell · vállnyomás · kar', min: 90, ex: [
+  { id: 'fc', tab: 'C', name: 'C nap', sub: 'vasárnap · hosszabb: hát · láb · mell · váll · kar', min: 120, ex: [
     { id: 'fc1', name: 'Pull-up', sets: 2, reps: '1–3', w: null, rest: 120, q: 'pull up' },
     { id: 'fc2', name: 'Negatív pull-up', sets: 2, reps: '3', w: null, rest: 90, q: 'negative pull up', note: 'Lefelé 4–5 mp alatt engedd le magad.' },
     { id: 'fc3', name: 'Lehúzás két kézzel a lat gépen', sets: 3, reps: '10–12', w: 54.43, unit: 'lb', rest: 90, q: 'lat pulldown machine two handles' },
+    { id: 'fc11', name: 'Lehúzás szűk V-fogással', sets: 3, reps: '8–10', w: 42, rest: 90, q: 'close grip v bar lat pulldown' },
+    { id: 'fc12', name: 'Gépi evezés mellkastámasszal', sets: 3, reps: '10–12', w: 40, rest: 90, q: 'chest supported machine row', alts: [{ name: 'T-rudas evezés', q: 't bar row form', w: 20 }] },
     { id: 'fc4', name: 'Lábtolás gépen', sets: 3, reps: '12–15', w: 104.33, unit: 'lb', rest: 120, q: 'leg press form', note: 'Itt kicsit könnyebben, több ismétléssel, mint az A napon.' },
     { id: 'fc5', name: 'Combhajlító gép', sets: 3, reps: '12–15', w: 60, rest: 75, q: 'seated leg curl machine' },
-    { id: 'fc6', name: 'Tárcsás mellnyomó gép', sets: 3, reps: '8–10', w: 20, side: true, rest: 120, q: 'plate loaded chest press', alts: [{ name: 'Tárogató gép szemből', q: 'pec deck fly machine', w: 45.36, unit: 'lb' }, { name: 'Kábeles mellrepülés', q: 'cable fly form', w: 10, side: true }] },
+    { id: 'fc15', name: 'Hiperextenzió', sets: 3, reps: '12–15', w: null, rest: 60, q: 'back extension 45 degree' },
+    { id: 'fc6', name: 'Tárcsás mellnyomó gép', sets: 3, reps: '8–10', w: 20, side: true, rest: 120, q: 'plate loaded chest press', alts: [{ name: 'Tárcsás ferde mellnyomó gép', q: 'incline plate loaded chest press', w: 20, side: true }] },
+    { id: 'fc13', name: 'Kábeles mellrepülés', sets: 3, reps: '12–15', w: 10, side: true, rest: 60, q: 'cable fly form', alts: [{ name: 'Tárogató gép szemből', q: 'pec deck fly machine', w: 45.36, unit: 'lb' }] },
     { id: 'fc7', name: 'Kábeles vállnyomás két fogantyúval', sets: 3, reps: '10–12', w: 10, side: true, rest: 90, q: 'cable shoulder press', note: 'Csak fájdalommentes tartományban; ha a váll jelez, inkább a tárcsás vállgép (⇄).', alts: [{ name: 'Tárcsás vállgép (elülső váll)', q: 'machine shoulder press', w: 10, side: true }] },
+    { id: 'fc14', name: 'Kábeles oldalemelés', sets: 3, reps: '12–15', w: 5, side: true, rest: 60, q: 'cable lateral raise' },
     { id: 'fc8', name: 'Kalapács bicepsz', sets: 3, reps: '12', w: 12, pair: true, rest: 60, q: 'dumbbell hammer curl' },
     { id: 'fc9', name: 'Tricepsz letolás kötéllel', sets: 3, reps: '12', w: 20, rest: 60, q: 'rope triceps pushdown' },
     { id: 'fc10', name: 'Vádli a keretben', sets: 3, reps: '12–15', w: 40, rest: 60, q: 'smith machine calf raise' }
@@ -466,7 +475,7 @@ const ATTILA_FB = { days: [
   const fill = (x) => { if (!x.video) x.video = vm.get(x.name) || VIDMAP[x.q] || ''; };
   for (const d of ATTILA_FB.days) for (const ex of d.ex) { fill(ex); (ex.alts || []).forEach(fill); }
 }
-const PLANS = { monika: { name: 'Mónika – felsőtest A/B/C (heti 3)', plan: DEFAULT_PLAN }, attilafb: { name: 'Attila – egész test A/B/C (heti 3, ~85 perc)', plan: ATTILA_FB }, attilafull: { name: 'Attila – teljes nap (~90 perc)', plan: ATTILA_FULL }, attilaabc: { name: 'Attila – A/B/C hát-hangsúllyal (hétköznap ~85, hétvégén ~115 perc)', plan: ATTILA_ABC }, attila: { name: 'Attila – 10 napos ciklus', plan: ATTILA_PLAN } };
+const PLANS = { monika: { name: 'Mónika – felsőtest A/B/C (heti 3)', plan: DEFAULT_PLAN }, attilafb: { name: 'Attila – egész test A/B/C (hétköznap 90, vasárnap 120 perc)', plan: ATTILA_FB }, attilafull: { name: 'Attila – teljes nap (~90 perc)', plan: ATTILA_FULL }, attilaabc: { name: 'Attila – A/B/C hát-hangsúllyal (hétköznap ~85, hétvégén ~115 perc)', plan: ATTILA_ABC }, attila: { name: 'Attila – 10 napos ciklus', plan: ATTILA_PLAN } };
 
 const clone = (o) => JSON.parse(JSON.stringify(o));
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);

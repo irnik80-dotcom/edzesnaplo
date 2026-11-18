@@ -100,6 +100,7 @@ main{padding:8px 14px calc(150px + env(safe-area-inset-bottom));max-width:640px;
 .addset{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
 .addset button{font-size:13px;font-weight:700;border:1px dashed color-mix(in srgb,var(--acc) 40%,transparent);background:transparent;color:var(--acc);border-radius:10px;padding:6px 11px}
 .addset button.m{color:var(--mute);border-color:var(--line)}
+.addset button[data-act=skip]{margin-left:auto}
 .btn{font-weight:700;border-radius:14px;border:1px solid var(--line);background:var(--solid);color:var(--ink);padding:11px 16px}
 .btn.p{background:var(--grad);border-color:transparent;color:#fff;box-shadow:0 10px 24px -10px rgba(47,59,96,.7)}
 .btn.w{color:var(--del)}
@@ -661,7 +662,7 @@ function planMin(day) {
 }
 function paceTxt() {
   const d = S.plan.days.find((x) => started(S.cur[x.id])); if (!d) return '';
-  const c = S.cur[d.id], pr = dayProgress(d), target = planMin(d);
+  const c = S.cur[d.id], pr = dayProgress(d), full = dayProgress(d, true).all, target = Math.max(5, Math.round(planMin(d) * (full ? pr.all / full : 1)));
   const el = (Date.now() - c.t0) / 60000, tp = Math.min(1, el / target);
   const done = Math.round(pr.pct * 100), tpc = Math.round(tp * 100);
   const lag = Math.round((tp - pr.pct) * target);
@@ -1039,9 +1040,12 @@ function render() {
   bindSwipe();
   checkThumbs();
 }
-function dayProgress(day) {
+// csak a mai edzésből kihagyott gyakorlat (a terv nem változik)
+const skipKey = (ex) => ex.alt || ex.id;
+const isSkip = (day, ex) => { const c = S.cur[day.id]; return !!(c && c.skip && c.skip[skipKey(ex)]); };
+function dayProgress(day, all0) {
   let done = 0, all = 0;
-  for (const ex of dayEx(day)) { const rows = setRows(day, ex).filter((s) => !s.wu); all += rows.length; done += rows.filter((s) => s.d).length; }
+  for (const ex of dayEx(day)) { if (!all0 && isSkip(day, ex)) continue; const rows = setRows(day, ex).filter((s) => !s.wu); all += rows.length; done += rows.filter((s) => s.d).length; }
   return { done, all, pct: all ? done / all : 0 };
 }
 const elapsed = (t0) => { const m = Math.floor((Date.now() - t0) / 60000); return m < 60 ? m + ' perc' : Math.floor(m / 60) + ' ó ' + (m % 60) + ' p'; };
@@ -1052,7 +1056,7 @@ function renderDay(day) {
   const sug = !started(c) && S.tab === suggestDay() && S.sessions.length;
   let h = `<section class="hero">${sug ? '<span class="sugg">★ Mai javaslat</span>' : ''}<div class="hd"><div class="ring"><svg viewBox="0 0 68 68" width="68" height="68"><circle cx="34" cy="34" r="28" stroke="rgba(255,255,255,.22)" stroke-width="7" fill="none"/><circle cx="34" cy="34" r="28" stroke="#fff" stroke-width="7" fill="none" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - pr.pct)).toFixed(1)}" style="transition:stroke-dashoffset .6s"/></svg><span>${Math.round(pr.pct * 100)}%</span></div>
     <div><h2>${esc(day.name)}</h2><div class="hs">${esc(day.sub || '')}</div></div></div>
-    <div class="stats"><div><b>${day.ex.length}</b>gyakorlat</div><div><b>${pr.done}/${pr.all}</b>sorozat</div><div><b id="elapsed">${started(c) ? elapsed(c.t0) : '–'}</b>${started(c) ? 'eltelt' : 'még nem kezdted'}</div>${started(c) ? `<div><b><span id="livekcal">${liveKcal(day) != null ? '~' + liveKcal(day) : '?'}</span><small style="font-size:14px;opacity:.75"> / <span id="livenet">${liveNet(day) != null ? liveNet(day) : '?'}</span></small></b>kcal 🔥 / nettó</div>` : ''}</div>
+    <div class="stats"><div><b>${day.ex.filter((x) => !isSkip(day, x)).length}</b>gyakorlat</div><div><b>${pr.done}/${pr.all}</b>sorozat</div><div><b id="elapsed">${started(c) ? elapsed(c.t0) : '–'}</b>${started(c) ? 'eltelt' : 'még nem kezdted'}</div>${started(c) ? `<div><b><span id="livekcal">${liveKcal(day) != null ? '~' + liveKcal(day) : '?'}</span><small style="font-size:14px;opacity:.75"> / <span id="livenet">${liveNet(day) != null ? liveNet(day) : '?'}</span></small></b>kcal 🔥 / nettó</div>` : ''}</div>
     ${!started(c) && !editMode && day.ex.length ? '<button class="hbtn" data-act="start">Edzés indítása</button>' : ''}</section>`;
   h += `<button class="edit" data-act="edit">${editMode ? '✓ Kész' : '✎ Szerkesztés'}</button><button class="edit" data-act="exnew" style="margin-right:6px">+ Gyakorlat</button><h2 style="margin-bottom:12px">Gyakorlatok</h2>`;
   if (!day.ex.length) h += `<div class="empty">Még nincs gyakorlat ezen a napon.<br>Nyomd meg a ✎ Szerkesztés gombot.</div>`;
@@ -1063,7 +1067,12 @@ function renderDay(day) {
   const isGoing = (ex) => !isDone(ex) && setRows(day, ex).some((s) => s.d);
   if (!editMode) list = list.filter(isGoing).concat(list.filter((x) => !isGoing(x)));
   if (fold) list = list.filter((x) => !isDone(x)).concat(list.filter(isDone));
+  if (!editMode) list = list.filter((x) => !isSkip(day, x)).concat(list.filter((x) => isSkip(day, x)));
   list.forEach((ex, xi) => {
+    if (!editMode && isSkip(day, ex)) {
+      h += `<article class="card ex muted folded skipped" data-ex="${esc(ex.id)}"><div class="exhead"><div class="exinfo"><h3>${esc(ex.name)}</h3></div></div><button class="foldbar" data-act="unskip">✕ Ma kihagyva · visszavétel</button></article>`;
+      return;
+    }
     const rows = setRows(day, ex);
     const work = rows.filter((s) => !s.wu);
     const doneAll = work.length > 0 && work.every((s) => s.d);
@@ -1094,7 +1103,7 @@ function renderDay(day) {
           <label><input class="r" type="number" inputmode="numeric" value="${s.r != null ? s.r : ''}" placeholder="${s.wu ? '12' : esc(ex.reps)}"><span>ism.</span></label>
           <button class="ok" data-act="tick" aria-label="Kész">${ICON.check}</button></div></div>`;
       });
-      h += `</div><div class="addset"><button data-act="addwu">+ bemelegítő</button><button data-act="addset">+ sorozat</button>${rows.length ? '<button class="m" data-act="delset">− sorozat</button>' : ''}</div>`;
+      h += `</div><div class="addset"><button data-act="addwu">+ bemelegítő</button><button data-act="addset">+ sorozat</button>${rows.length ? '<button class="m" data-act="delset">− sorozat</button>' : ''}<button class="m" data-act="skip" title="Csak a mai edzésből veszi ki, a terv nem változik">Ma kihagyom</button></div>`;
     }
     h += '</article>';
   });
@@ -1407,6 +1416,8 @@ $('main').addEventListener('click', (e) => {
     case 'video': openVideo(ex); break;
     case 'restpick': openRest(ex); break;
     case 'unfold': openDone.add(ex.id); render(); break;
+    case 'skip': { const c = S.cur[day.id] || (S.cur[day.id] = { sets: {} }); (c.skip || (c.skip = {}))[skipKey(ex)] = 1; save(); render(); toast('Ma kihagyva: ' + ex.name); } break;
+    case 'unskip': { const c = S.cur[day.id]; if (c && c.skip) delete c.skip[skipKey(ex)]; save(); render(); } break;
     case 'refold': openDone.delete(ex.id); render(); break;
     case 'swap': openSwap(day, ex); break;
     case 'start': { startCur(day); save(); render(); toast('Indulhat! 💪'); break; }

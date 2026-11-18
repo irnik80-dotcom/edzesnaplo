@@ -24,7 +24,7 @@
   --bg:#0d0f14;--bg2:#161a24;--card:rgba(30,34,44,.72);--solid:#1d212b;--ink:#eef0f5;--mute:#9399a6;--line:rgba(255,255,255,.07);
   --acc:#93a6dd;--acc2:#b6c3ea;--soft:rgba(147,166,221,.14);--shadow:0 10px 30px -12px rgba(0,0,0,.6)}}
 *{box-sizing:border-box}
-[hidden]{display:none!important}
+[hidden]{display:none!important}#exform.logm .nolog{display:none}
 html,body{margin:0;color:var(--ink);font:16px/1.4 ui-rounded,"SF Pro Rounded",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
 body{background:radial-gradient(120% 60% at 100% 0%,var(--bg2) 0%,transparent 60%),radial-gradient(80% 50% at 0% 100%,var(--bg2) 0%,transparent 70%),var(--bg);background-attachment:fixed;min-height:100vh}
 button{font:inherit;color:inherit;cursor:pointer}
@@ -232,18 +232,18 @@ h1.pass.exp{color:var(--del)}
     <label>Név<input type="text" name="name" required></label>
     <div class="two">
       <label>Sorozat<input type="number" name="sets" min="1" max="20" step="1" inputmode="numeric" required></label>
-      <label>Ismétlés (pl. 8–10)<input type="text" name="reps" required></label>
+      <label><span id="exdlg-r">Ismétlés (pl. 8–10)</span><input type="text" name="reps" required></label>
     </div>
     <div class="two">
       <label><span id="exdlg-w">Súly (kg), üresen: testsúly</span><input type="number" name="w" step="any" min="0" inputmode="decimal"></label>
-      <label>Pihenő (mp)<input type="number" name="rest" min="0" step="any" inputmode="numeric"></label>
+      <label class="nolog">Pihenő (mp)<input type="number" name="rest" min="0" step="any" inputmode="numeric"></label>
     </div>
-    <label>Bemelegítő sorozatok (mindig megjelennek a munkasorozatok előtt)<input type="number" name="wu" min="0" max="5"></label>
+    <label class="nolog">Bemelegítő sorozatok (mindig megjelennek a munkasorozatok előtt)<input type="number" name="wu" min="0" max="5"></label>
     <label>Mértékegység ennél a gyakorlatnál<select name="unit"><option value="">Alapértelmezett</option><option value="kg">kg</option><option value="lb">font</option></select></label>
     <label class="ck"><input type="checkbox" name="pair"> Két súlyzó (2×)</label>
     <label class="ck"><input type="checkbox" name="side"> Oldalanként</label>
-    <label>Videó link<input type="text" name="video" inputmode="url" autocapitalize="off" placeholder="https://youtube.com/shorts/..."></label>
-    <label>Megjegyzés<input type="text" name="note"></label>
+    <label class="nolog">Videó link<input type="text" name="video" inputmode="url" autocapitalize="off" placeholder="https://youtube.com/shorts/..."></label>
+    <label class="nolog">Megjegyzés<input type="text" name="note"></label>
     <div class="row">
       <button class="btn w" type="button" id="exdel">Törlés</button>
       <span class="grow"></span>
@@ -1270,7 +1270,7 @@ function renderLog(X) {
   let h = wk + '<p class="sub">' + X.sessions.length + ' edzés</p>';
   for (const s of X.sessions) {
     const mins = s.t0 ? Math.round((s.date - s.t0) / 60000) : 0, kc = kcalOf(s, !X.ro);
-    h += `<div class="card log"><div class="h"><b>${esc(fmtDate(s.date))} · ${esc(s.dayName || s.day)}</b>${mins ? `<span class="meta">${mins} perc${kc != null ? ' · ' + kcalTxt(kc, netOf(s, !X.ro)) : ''}</span>` : ''}${X.ro ? '' : `<button class="btn s w" data-act="logdel" data-id="${esc(s.id)}">🗑</button>`}</div><ul>`;
+    h += `<div class="card log"><div class="h"><b>${esc(fmtDate(s.date))} · ${esc(s.dayName || s.day)}</b>${mins ? `<span class="meta">${mins} perc${kc != null ? ' · ' + kcalTxt(kc, netOf(s, !X.ro)) : ''}</span>` : ''}${X.ro ? '' : `<button class="btn s" data-act="logadd" data-id="${esc(s.id)}" title="Gyakorlat hozzáadása utólag">＋</button> <button class="btn s w" data-act="logdel" data-id="${esc(s.id)}">🗑</button>`}</div><ul>`;
     for (const it of s.items) {
       const pe = exById(it.ex), u = pe ? exU(pe) : (it.u || unit());
       if (it.bw) { const bw = it.sets.find((x) => x.w != null); h += `<li>${esc(it.name)}: <span>${it.sets.map((x) => (x.wu ? 'B ' : '') + (x.r == null ? '?' : x.r)).join(', ')} ism.${bw ? ` (testsúly ${toU(bw.w)} ${unit()})` : ''}</span></li>`; }
@@ -1414,6 +1414,7 @@ $('main').addEventListener('click', (e) => {
     case 'up': case 'down': { const j = act === 'up' ? i - 1 : i + 1; [day.ex[i], day.ex[j]] = [day.ex[j], day.ex[i]]; save(); render(); break; }
     case 'exedit': openEx(day, i); break;
     case 'exnew': openEx(day, -1); break;
+    case 'logadd': openLogAdd(b.dataset.id); break;
     case 'logdel': if (confirm('Törlöd ezt az edzést a naplóból?')) { S.sessions = S.sessions.filter((s) => s.id !== b.dataset.id); if (Gym.cloud) Gym.cloud.delSession(b.dataset.id).catch(console.warn); save(); render(); } break;
     case 'unit': S.settings.unit = b.dataset.u; save(); render(); break;
     case 'exunit': ex.unit = exU(ex) === 'lb' ? 'kg' : 'lb'; save(); render(); break;
@@ -1505,7 +1506,7 @@ $('libres').addEventListener('click', (e) => {
 // gyakorlat szerkesztése
 let exCtx = null;
 function openEx(day, i) {
-  exCtx = { day, i };
+  exCtx = { day, i }; $('exform').classList.remove('logm'); $('exdlg-r').textContent = 'Ismétlés (pl. 8–10)';
   const ex = i >= 0 ? day.ex[i] : { name: '', sets: 3, reps: '10', w: null, rest: S.settings.rest, video: '', note: '' };
   const f = $('exform');
   f.name.value = ex.name; f.sets.value = ex.sets; f.reps.value = ex.reps;
@@ -1519,8 +1520,35 @@ function openEx(day, i) {
   $('exdlg').showModal();
   if (i < 0) setTimeout(() => $('libq').focus(), 50);
 }
+// utólagos gyakorlat egy már lezárt edzéshez
+function openLogAdd(sid) {
+  exCtx = { log: sid };
+  const f = $('exform'); f.classList.add('logm');
+  f.name.value = ''; f.sets.value = 3; f.reps.value = '10'; f.unit.value = ''; f.w.value = ''; f.pair.checked = false; f.side.checked = false;
+  f.wu.value = 0; f.rest.value = ''; f.video.value = ''; f.note.value = '';
+  $('exdlg-title').textContent = 'Gyakorlat hozzáadása ehhez az edzéshez';
+  $('exdlg-w').textContent = 'Súly (a választott mértékegységben), üresen: testsúly';
+  $('exdlg-r').textContent = 'Ismétlés (pl. 10, vagy soronként: 10,10,8)';
+  $('exdel').hidden = true; $('libpick').hidden = false; delete f.dataset.q;
+  $('libq').value = ''; libCat = 'Mind'; libSel = -1; fillLib();
+  $('exdlg').showModal(); setTimeout(() => $('libq').focus(), 50);
+}
+function saveLogAdd(sid) {
+  exCtx = null;
+  const sess = S.sessions.find((x) => x.id === sid); if (!sess) return;
+  const f = $('exform'), name = f.name.value.trim(); if (!name) return;
+  const u = f.unit.value || unit(), w = fromU(f.w.value, u), n = Math.max(1, Math.min(20, +f.sets.value || 1));
+  const rs = f.reps.value.split(/[,;\s]+/).map((t) => parseInt(t, 10)).filter((x) => !isNaN(x));
+  const sets = []; for (let k = 0; k < n; k++) sets.push({ w: w == null ? (S.settings.bw || null) : w, r: rs.length ? rs[Math.min(k, rs.length - 1)] : null });
+  let pe = null; for (const d of S.plan.days) for (const ex of d.ex) if (!pe && ex.name.toLowerCase() === name.toLowerCase()) pe = ex;
+  sess.items.push({ ex: pe ? pe.id : 'x' + newId(), name, pair: f.pair.checked, side: f.side.checked, bw: w == null, u, sets, late: 1 });
+  { const kg = S.settings.bw; const k = kg && sess.t0 ? estKcal(sess, kg) : null; if (k != null) { sess.kcal = k; sess.kcalNet = Math.max(0, k - restBurn(sess.t0, sess.date, kg)); } }
+  save(); if (Gym.cloud) Gym.cloud.addSession(clone(sess)).catch(console.warn);
+  render(); toast('Hozzáadva: ' + name);
+}
 $('exdlg').addEventListener('close', () => {
   if ($('exdlg').returnValue !== 'ok' || !exCtx) return;
+  if (exCtx.log) return saveLogAdd(exCtx.log);
   const f = $('exform'), { day, i } = exCtx;
   const ex = i >= 0 ? day.ex[i] : { id: newId() };
   const oldW = ex.w;

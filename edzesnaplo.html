@@ -1298,7 +1298,7 @@ function renderLog(X) {
   let h = wk + '<p class="sub">' + X.sessions.length + ' edzés</p>';
   for (const s of X.sessions) {
     const mins = s.t0 ? Math.round((s.date - s.t0) / 60000) : 0, kc = kcalOf(s, !X.ro);
-    h += `<div class="card log"><div class="h"><b>${esc(fmtDate(s.date))} · ${esc(s.dayName || s.day)}</b>${mins ? `<span class="meta">${mins} perc${kc != null ? ' · ' + kcalTxt(kc, netOf(s, !X.ro)) : ''}</span>` : ''}${X.ro ? '' : `<button class="btn s" data-act="logadd" data-id="${esc(s.id)}" title="Gyakorlat hozzáadása utólag">＋</button> <button class="btn s w" data-act="logdel" data-id="${esc(s.id)}">🗑</button>`}</div><ul>`;
+    h += `<div class="card log"><div class="h"><b>${esc(fmtDate(s.date))} · ${esc(s.dayName || s.day)}</b>${mins ? `<span class="meta">${mins} perc${kc != null ? ' · ' + kcalTxt(kc, netOf(s, !X.ro)) + ' · ' + (kc / mins).toFixed(1).replace('.', ',') + ' kcal/perc' : ''}</span>` : ''}${X.ro ? '' : `<button class="btn s" data-act="logadd" data-id="${esc(s.id)}" title="Gyakorlat hozzáadása utólag">＋</button> <button class="btn s w" data-act="logdel" data-id="${esc(s.id)}">🗑</button>`}</div><ul>`;
     for (const it of s.items) {
       const pe = exById(it.ex), u = pe ? exU(pe) : (it.u || unit());
       if (it.bw) { const bw = it.sets.find((x) => x.w != null); h += `<li>${esc(it.name)}: <span>${it.sets.map((x) => (x.wu ? 'B ' : '') + (x.r == null ? '?' : x.r)).join(', ')} ism.${bw ? ` (testsúly ${toU(bw.w)} ${unit()})` : ''}</span></li>`; }
@@ -1389,6 +1389,11 @@ function restLine(sess) {
   const r = restStats(sess); if (!r) return '';
   return `<div class="rstat">⏱ Pihenő átl. <b>${mmssR(r.avg)}</b> (terv ${mmssR(r.plan)}) · átállás átl. ${mmssR(r.trans)}<br>munka ~${Math.round(r.workMin)} p · pihenő ~${Math.round(r.restMin)} p · átállás ~${Math.round(r.transMin)} p${r.worst ? `<br>Leghosszabb pihenők: ${esc(r.worst.name)} – ${mmssR(r.worst.avg)} a ${mmssR(r.worst.plan)} helyett` : ''}</div>`;
 }
+function kcalChart(X) {
+  const pts = X.sessions.slice(0, 20).reverse().map((s) => { const m = s.t0 ? (s.date - s.t0) / 60000 : 0, k = kcalOf(s, !X.ro); return m >= 10 && k != null ? { s, y: Math.round((k / m) * 10) / 10 } : null; }).filter(Boolean);
+  if (pts.length < 2) return '';
+  return chartSvg(pts.map((x) => ({ l: new Date(x.s.date).toLocaleDateString('hu-HU', { month: 'numeric', day: 'numeric' }), y: x.y })), 'Kalória / perc edzésenként (becslés)');
+}
 function restChart(X) {
   const pts = X.sessions.slice(0, 20).reverse().map((s) => ({ s, r: restStats(s) })).filter((x) => x.r);
   if (pts.length < 2) return '';
@@ -1404,7 +1409,7 @@ function renderChart(X) {
   let bwh = muscleCard(X) + stallCard(X);
   const bl = X.bwLog || (X === undefined ? null : null);
   if (!X.ro) { const log = (S.settings.bwLog || []).slice().sort((a, b) => a.t - b.t); if (log.length) bwh += chartSvg(log.map((z) => ({ l: new Date(z.t).toLocaleDateString('hu-HU', { month: 'numeric', day: 'numeric' }), y: toU(z.kg) })), `Testsúly (${unit()})`); }
-  bwh += restChart(X);
+  bwh += kcalChart(X) + restChart(X);
   if (!used.length) return bwh + `<div class="empty">A grafikon az első befejezett edzés után jelenik meg.<br>Edzés végén nyomd meg az „Edzés befejezése” gombot, csak akkor kerül be a naplóba.</div>`;
   if (!used.some(([id]) => id === chartEx)) chartEx = used[0][0];
   let h = bwh + `<p class="sub">Gyakorlatonként, edzésről edzésre</p><select id="chartsel">${used.map(([id, n]) => `<option value="${esc(id)}"${id === chartEx ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select><div style="height:10px"></div>`;

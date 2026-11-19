@@ -25,6 +25,13 @@
   --acc:#93a6dd;--acc2:#b6c3ea;--soft:rgba(147,166,221,.14);--shadow:0 10px 30px -12px rgba(0,0,0,.6)}}
 *{box-sizing:border-box}
 [hidden]{display:none!important}#exform.logm .nolog{display:none}
+.logsearch{margin:4px 0 6px}.logsearch input{width:100%}
+.detbtn{margin-top:8px}
+.det{margin-top:8px;overflow-x:auto}.det table{width:100%;border-collapse:collapse;font-size:12px}
+.det th{text-align:left;color:var(--mute);font-weight:700;padding:4px 6px;border-bottom:1px solid var(--line)}
+.det td{padding:4px 6px;border-bottom:1px solid var(--line);vertical-align:top;white-space:nowrap}
+.det td:nth-child(2){white-space:normal}.det tr.newex td{border-top:2px solid var(--line)}
+.det .over{color:var(--warn,#c0392b)}
 .musc .mg{display:grid;grid-template-columns:96px 1fr 26px 22px;align-items:center;gap:8px;margin-top:8px;font-size:13px}
 .musc .bar{position:relative;height:10px;border-radius:6px;background:var(--line)}
 .musc .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:color-mix(in srgb,var(--acc) 45%,transparent)}
@@ -1394,19 +1401,60 @@ function renderLog(X) {
   const exById = (id) => { for (const d of X.plan.days) for (const ex of d.ex) if (ex.id === id) return ex; return null; };
   const wk = weekCard(X);
   if (!X.sessions.length) return wk + `<div class="empty">Még nincs elmentett edzés. Pipáld ki a sorozatokat, majd nyomd meg az „Edzés befejezése” gombot.</div>`;
-  let h = wk + '<p class="sub">' + X.sessions.length + ' edzés</p>';
-  for (const s of X.sessions) {
+  LOGX = X;
+  return wk + `<div class="logsearch"><input type="search" id="logq" placeholder="🔍 Keresés: gyakorlat, nap vagy dátum (pl. hip thrust, A nap, nov. 19)" value="${esc(logQ)}" autocomplete="off"></div><div id="loglist">${logList(X)}</div>`;
+}
+// ---------- napló: keresés + részletes nézet ----------
+let logQ = '', LOGX = null; const openDet = new Set();
+function logList(X) {
+  const exById = (id) => { for (const d of X.plan.days) for (const ex of d.ex) if (ex.id === id) return ex; return null; };
+  const q = fold(logQ).split(/\s+/).filter(Boolean);
+  const hit = (t) => q.every((w) => fold(t).includes(w));
+  let list = X.sessions.map((s) => {
+    if (!q.length) return { s, items: s.items };
+    const head = (s.dayName || s.day) + ' ' + fmtDate(s.date) + ' ' + new Date(s.date).toLocaleDateString('hu-HU');
+    if (hit(head)) return { s, items: s.items };
+    const items = s.items.filter((it) => hit(it.name) || hit(head + ' ' + it.name));
+    return items.length ? { s, items } : null;
+  }).filter(Boolean);
+  let h = '<p class="sub">' + (q.length ? `${list.length} találat` : list.length + ' edzés') + '</p>';
+  if (q.length && !list.length) h += '<div class="empty">Nincs ilyen edzés vagy gyakorlat a naplóban.</div>';
+  for (const { s, items } of list) {
     const mins = s.t0 ? Math.round((s.date - s.t0) / 60000) : 0, kc = kcalOf(s, !X.ro);
     h += `<div class="card log"><div class="h"><b>${esc(fmtDate(s.date))} · ${esc(s.dayName || s.day)}</b>${mins ? `<span class="meta">${mins} perc${kc != null ? ' · ' + kcalTxt(kc, netOf(s, !X.ro)) + ' · ' + (kc / mins).toFixed(1).replace('.', ',') + ' kcal/perc' : ''}</span>` : ''}${X.ro ? '' : `<button class="btn s" data-act="logadd" data-id="${esc(s.id)}" title="Gyakorlat hozzáadása utólag">＋</button> <button class="btn s w" data-act="logdel" data-id="${esc(s.id)}">🗑</button>`}</div><ul>`;
-    for (const it of s.items) {
+    for (const it of items) {
       const pe = exById(it.ex), u = pe ? exU(pe) : (it.u || unit());
       if (it.assist) { h += `<li>${esc(it.name)}: <span>${it.sets.map((x) => (x.wu ? 'B ' : '') + '−' + toU(x.a || 0, it.u) + '×' + (x.r == null ? '?' : x.r)).join(', ')} (${esc(it.u || unit())} rásegítés)</span></li>`; continue; }
       if (it.bw) { const bw = it.sets.find((x) => x.w != null); h += `<li>${esc(it.name)}: <span>${it.sets.map((x) => (x.wu ? 'B ' : '') + (x.r == null ? '?' : x.r)).join(', ')} ism.${bw ? ` (testsúly ${toU(bw.w)} ${unit()})` : ''}</span></li>`; }
       else h += `<li>${esc(it.name)}: <span>${it.sets.map((x) => (x.wu ? 'B ' : '') + (x.w == null ? '–' : toU(x.w, u)) + '×' + (x.r == null ? '?' : x.r)).join(', ')} (${u})</span></li>`;
     }
-    h += '</ul>' + restLine(s) + (s.prs ? `<ul class="prs">${s.prs.map((x) => `<li>🏅 ${esc(x.name)}: ${esc(x.txt)}</li>`).join('')}</ul>` : '') + '</div>';
+    h += '</ul>' + restLine(s) + `<button class="btn s detbtn" data-act="logdet" data-id="${esc(s.id)}">${openDet.has(s.id) ? '▴ Részletek elrejtése' : '▾ Részletes napló (időpontok, pihenők)'}</button>` + (openDet.has(s.id) ? sessDetail(s, exById) : '') + (s.prs ? `<ul class="prs">${s.prs.map((x) => `<li>🏅 ${esc(x.name)}: ${esc(x.txt)}</li>`).join('')}</ul>` : '') + '</div>';
   }
   return h;
+}
+function sessDetail(s, exById) {
+  const rows = [], untimed = [];
+  s.items.forEach((it, k) => { let no = 0; it.sets.forEach((z) => { const r = { it, k, z, no: z.wu ? 'B' : ++no }; (z.t ? rows : untimed).push(r); }); });
+  rows.sort((a, b) => a.z.t - b.z.t);
+  const hms = (t) => new Date(t).toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const val = (it, z) => { const pe = exById(it.ex), u = pe ? exU(pe) : (it.u || unit());
+    return it.assist ? `−${toU(z.a || 0, it.u)} ${it.u || unit()} × ${z.r ?? '?'}` : it.bw ? `${z.r ?? '?'} ism.` : `${z.w == null ? '–' : toU(z.w, u)} ${u} × ${z.r ?? '?'}`; };
+  let h = '<div class="det">';
+  if (!rows.length) h += '<p class="meta">Ennél az edzésnél még nem volt időbélyeg (a részletes időadatok nov. 18-tól vannak).</p>';
+  else {
+    h += `<table><thead><tr><th>Idő</th><th>Gyakorlat</th><th>Súly × ism.</th><th>Előtte</th></tr></thead><tbody>`;
+    let prev = s.t0 && s.t0 < rows[0].z.t ? { t: s.t0, k: -1 } : null;
+    for (const r of rows) {
+      let gap = '';
+      if (prev) { const g = (r.z.t - prev.t) / 1000; gap = prev.k === -1 ? `kezdéstől ${mmssR(g)}` : prev.k === r.k ? `pihenő ${mmssR(Math.max(0, g - RWORK))}` : `átállás ${mmssR(Math.max(0, g - RWORK))}`;
+        const plan = r.it.rest; if (prev.k === r.k && plan && g - RWORK > plan + 30) gap = `<b class="over">${gap}</b>`; }
+      h += `<tr class="${prev && prev.k !== r.k ? 'newex' : ''}"><td>${hms(r.z.t)}</td><td>${esc(r.it.name)} <span class="meta">${r.no}.</span></td><td>${esc(val(r.it, r.z))}</td><td>${gap}</td></tr>`;
+      prev = { t: r.z.t, k: r.k };
+    }
+    h += `</tbody></table><p class="meta">„Pihenő” = két sorozat között ugyanannál a gyakorlatnál, „átállás” = gyakorlatváltás; mindkettőből ~${RWORK} mp a sorozat ideje le van vonva. Félkövér: 30 mp-nél többel hosszabb a tervezett pihenőnél.</p>`;
+  }
+  if (untimed.length) h += `<p class="meta">Időpont nélkül (utólag hozzáadva vagy régi): ${untimed.map((r) => esc(r.it.name) + ' ' + r.no + '. (' + esc(val(r.it, r.z)) + ')').join(', ')}</p>`;
+  return h + '</div>';
 }
 function chartSvg(pts, label) {
   const W = 320, H = 150, L = 34, R = 10, T = 10, B = 22;
@@ -1649,6 +1697,7 @@ $('main').addEventListener('click', (e) => {
     case 'exedit': openEx(day, i); break;
     case 'exnew': openEx(day, -1); break;
     case 'logadd': openLogAdd(b.dataset.id); break;
+    case 'logdet': { const id = b.dataset.id; openDet.has(id) ? openDet.delete(id) : openDet.add(id); if ($('loglist') && LOGX) $('loglist').innerHTML = logList(LOGX); } break;
     case 'logdel': if (confirm('Törlöd ezt az edzést a naplóból?')) { S.sessions = S.sessions.filter((s) => s.id !== b.dataset.id); if (Gym.cloud) Gym.cloud.delSession(b.dataset.id).catch(console.warn); save(); render(); } break;
     case 'unit': S.settings.unit = b.dataset.u; save(); render(); break;
     case 'exunit': ex.unit = exU(ex) === 'lb' ? 'kg' : 'lb'; save(); render(); break;
@@ -1729,6 +1778,7 @@ function fillLib() {
     + (hits.length ? '' : `<div class="none">Nincs ilyen a gyakorlattárban. Írd be lent a nevét saját gyakorlatként.</div>`);
 }
 $('libq').addEventListener('input', fillLib);
+document.addEventListener('input', (e) => { if (e.target.id === 'logq') { logQ = e.target.value; if ($('loglist') && LOGX) $('loglist').innerHTML = logList(LOGX); } });
 $('libcats').addEventListener('click', (e) => { const b = e.target.closest('[data-cat]'); if (b) { libCat = b.dataset.cat; fillLib(); } });
 $('libres').addEventListener('click', (e) => {
   const b = e.target.closest('[data-li]'); if (!b) return;

@@ -1097,7 +1097,8 @@ const ICON = {
 function openVideo(ex) {
   const id = ytId(exVid(ex));
   if (!id) { window.open(ytRaw(ex.video) ? ytSearch(ex) : (ex.video || ytSearch(ex)), '_blank', 'noopener'); return; }
-  $('vidframe').src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&playsinline=1&rel=0&modestbranding=1`;
+  if (S.settings.ytExt) { window.open(exVid(ex), '_blank', 'noopener'); return; }
+  $('vidframe').src = `https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1&rel=0&modestbranding=1&origin=${encodeURIComponent(location.origin)}`;
   $('vidyt').href = exVid(ex);
   $('viddlg').showModal();
 }
@@ -1510,6 +1511,7 @@ function renderSettings() {
     <div class="row"><button class="btn s" data-act="passadd" data-m="1">+1 hónap</button><button class="btn s" data-act="passadd" data-m="3">+3 hónap</button>${S.settings.pass ? '<span class="grow"></span><button class="btn s w" data-act="passdel">Nincs bérlet</button>' : ''}</div>
     <label class="ck" style="color:var(--ink)"><input type="checkbox" id="donelast" ${S.settings.doneLast !== false ? 'checked' : ''}> Kész gyakorlatok a lista végére, halványan és összecsukva</label>
     <label class="ck" style="color:var(--ink)"><input type="checkbox" id="soundon" ${S.settings.sound !== false ? 'checked' : ''}> Hangjelzés a pihenő végén (a háttérzenét nem állítja meg)</label>
+    <label class="ck" style="color:var(--ink)"><input type="checkbox" id="ytext" ${S.settings.ytExt ? 'checked' : ''}> Videók megnyitása a YouTube appban (ha a beépített lejátszó bejelentkezést / robot-ellenőrzést kér)</label>
     <label class="ck" style="color:var(--ink)"><input type="checkbox" id="autoorder" ${S.settings.autoOrder !== false ? 'checked' : ''}> Gyakorlatok sorrendje igazodjon ahhoz, ahogy ténylegesen edzek</label>
     <label>Heti cél (edzés / hét)<input type="number" id="goal" min="1" max="7" inputmode="numeric" value="${S.settings.goal || 3}"></label>
     <label>Alap pihenőidő (mp), ha a gyakorlatnál nincs megadva<input type="number" id="defrest" min="0" step="5" value="${S.settings.rest}"></label></div>`;
@@ -1628,6 +1630,7 @@ $('main').addEventListener('change', (e) => {
   if (t.id === 'pass') { S.settings.pass = t.value || ''; save(); render(); return; }
   if (t.id === 'donelast') { S.settings.doneLast = t.checked; save(); return; }
   if (t.id === 'soundon') { S.settings.sound = t.checked; save(); return; }
+  if (t.id === 'ytext') { S.settings.ytExt = t.checked; save(); return; }
   if (t.id === 'autoorder') { S.settings.autoOrder = t.checked; save(); return; }
   if (t.id === 'goal') { S.settings.goal = Math.max(1, Math.min(7, +t.value || 3)); save(); return; }
   if (t.id === 'bw') { setBW(fromU(t.value)); save(); render(); return; }

@@ -80,6 +80,7 @@ main{padding:8px 14px calc(150px + env(safe-area-inset-bottom));max-width:640px;
 .exinfo{flex:1;min-width:0}
 .exinfo h3{margin:0;font-size:16.5px;line-height:1.25;letter-spacing:-.01em}
 .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.exinfo .mus{display:block;font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);margin-bottom:1px}
 .chips span{font-size:12px;font-weight:700;padding:3px 8px;border-radius:8px;background:var(--soft);color:var(--acc)}
 .chips span.up{background:var(--grad);color:#fff}
 .uchip{flex:0 0 auto;align-self:flex-start;font-size:12px;font-weight:800;border:1px solid var(--line);background:var(--solid);color:var(--mute);border-radius:9px;padding:4px 8px}
@@ -265,7 +266,7 @@ h1.pass.exp{color:var(--del)}
 <script>
 'use strict';
 const KEY = 'edzesnaplo.v1';
-const APPVER = '2026-11-19 03:18 UTC';
+const APPVER = '2026-11-19 03:25 UTC';
 const LB = 2.20462;
 const YT = (id) => 'https://www.youtube.com/shorts/' + id;
 
@@ -556,7 +557,55 @@ const ATTILA_1119 = { days: [
   for (const l of LIBRARY) if (!vm.has(l.name)) vm.set(l.name, l.video);
   const fill = (x) => { if (!x.video) x.video = vm.get(x.name) || vm.get(x.name.replace(/ – 2\. kör$/, '')) || VIDMAP[x.q] || ''; };
   for (const d of ATTILA_1119.days) for (const ex of d.ex) { fill(ex); (ex.alts || []).forEach(fill); } }
-const PLANS = { monika: { name: 'Mónika – felsőtest A/B/C (heti 3)', plan: DEFAULT_PLAN }, attila1119: { name: 'Attila – 2026.11.19.', plan: ATTILA_1119 } };
+// Mónika – 2026.11.19.: far alapok minden nap + hát fókusz (lehúzások) + váll, kar; mell csak minimális, 45°-os nyomás nincs
+const MONIKA_1119 = { days: [
+  { id: 'ma', tab: 'A', name: 'A nap', sub: 'hát (lehúzás) · far · váll · kar', min: 80, ex: [
+    { id: 'ma1', name: 'Chin-up', sets: 3, reps: '3–5', w: null, rest: 120, q: 'chin up', note: 'Az edzés elején, frissen.' },
+    { id: 'ma2', name: 'Csípőemelés rúddal (hip thrust)', sets: 4, reps: '8–10', w: 60, rest: 120, q: 'barbell hip thrust', note: 'Fent 1 mp szorítás, áll lent, bordák lent.' },
+    { id: 'ma3', name: 'Lehúzás széles fogással', sets: 3, reps: '8–10', w: 40, rest: 90, q: 'wide grip lat pulldown' },
+    { id: 'ma4', name: 'Bolgár guggolás', sets: 3, reps: '8–10', w: 8, pair: true, side: true, rest: 90, q: 'bulgarian split squat', note: 'Kicsit előredőlve, hosszabb lépéssel jobban a farra megy.' },
+    { id: 'ma5', name: 'Váltott karos kábeles lehúzás', sets: 3, reps: '10', w: 20, side: true, rest: 90, q: 'alternating single arm cable lat pulldown' },
+    { id: 'ma6', name: 'Bokapántos lábemelés hátra (kábel)', sets: 3, reps: '12–15', w: 7.5, side: true, rest: 45, q: 'cable glute kickback ankle strap', note: 'Jobb és bal lábbal is.' },
+    { id: 'ma7', name: 'Ülő súlyzós vállnyomás', sets: 3, reps: '8–10', w: 8, pair: true, rest: 90, q: 'seated dumbbell shoulder press' },
+    { id: 'ma8', name: 'Oldalemelés', sets: 3, reps: '12–15', w: 4, pair: true, rest: 60, q: 'dumbbell lateral raise' },
+    { id: 'ma9', name: 'Bicepsz súlyzóval', sets: 3, reps: '10–12', w: 6, pair: true, rest: 60, q: 'dumbbell curl' },
+    { id: 'ma10', name: 'Combtávolító gép', sets: 3, reps: '15', w: 35, rest: 45, q: 'hip abduction machine', note: 'Kicsit előredőlve még jobban a farizomra megy.' },
+    { id: 'ma11', name: 'Tricepsz letolás kötéllel', sets: 3, reps: '12', w: 15, rest: 60, q: 'rope triceps pushdown' }
+  ] },
+  { id: 'mb', tab: 'B', name: 'B nap', sub: 'szumó felhúzás · evezés · far · hátsó váll · kar', min: 85, ex: [
+    { id: 'mb1', name: 'Gépes segített húzódzkodás', sets: 3, reps: '6–8', w: null, rest: 90, q: 'assisted pull up machine', note: 'A rásegítés mértékét (kg) írd a megjegyzésbe; cél: egyre kevesebb.' },
+    { id: 'mb2', name: 'Szumó felhúzás', sets: 4, reps: '6–8', w: 50, wu: 1, rest: 150, q: 'sumo deadlift', note: 'Bemelegítő sorozat után. Csípőből told előre a végén.' },
+    { id: 'mb3', name: 'Ülő kábeles evezés (V-fogás)', sets: 3, reps: '10–12', w: 25, rest: 90, q: 'seated cable row v bar' },
+    { id: 'mb4', name: 'Lábtolás gépen', sets: 3, reps: '10–12', w: 80, rest: 120, q: 'leg press', mus: 'Far, comb', note: 'Lábfej magasan és szélesen a platformon: így jobban a farizomra megy.' },
+    { id: 'mb5', name: 'Lehúzás szűk V-fogással', sets: 3, reps: '8–10', w: 28, rest: 90, q: 'close grip v bar lat pulldown' },
+    { id: 'mb6', name: 'Combközelítő gép', sets: 3, reps: '15', w: 30, rest: 45, q: 'hip adduction machine' },
+    { id: 'mb7', name: 'Térdelő face pull kötéllel (csuklyára)', sets: 3, reps: '12', w: 15, rest: 60, q: 'half kneeling face pull rope' },
+    { id: 'mb8', name: 'Tárogató gép szemből, állva', sets: 2, reps: '12', w: 15, rest: 60, q: 'standing pec deck fly tárogatás', note: 'Utána rögtön ugyanitt: tárogató háttal.' },
+    { id: 'mb9', name: 'Tárogató gép háttal (fordított repülés)', sets: 3, reps: '12–15', w: 15, rest: 60, q: 'reverse pec deck rear delt fly' },
+    { id: 'mb10', name: 'Bokapántos lábemelés oldalra (kábel)', sets: 3, reps: '15', w: 5, side: true, rest: 45, q: 'cable hip abduction ankle strap', note: 'Jobb és bal lábbal is.' },
+    { id: 'mb11', name: 'Bicepsz kábelen', sets: 3, reps: '10–12', w: 10, rest: 60, q: 'cable curl form' },
+    { id: 'mb12', name: 'Tricepsz letolás', sets: 3, reps: '12', w: 15, rest: 60, q: 'triceps pushdown' }
+  ] },
+  { id: 'mc', tab: 'C', name: 'C nap', sub: 'hát · far · váll · kar', min: 85, ex: [
+    { id: 'mc1', name: 'Negatív pull-up', sets: 3, reps: '3', w: null, rest: 120, q: 'negative pull up', note: 'Lefelé 5 mp.' },
+    { id: 'mc2', name: 'Csípőemelés rúddal (hip thrust) – könnyebb', sets: 3, reps: '12–15', w: 50, rest: 90, q: 'barbell hip thrust', note: 'Kisebb súllyal, több ismétléssel, fent 2 mp szorítás.' },
+    { id: 'mc3', name: 'Lat gép, lehúzás két kézzel', sets: 3, reps: '10–12', w: 35, rest: 90, q: 'lat pulldown machine two handles' },
+    { id: 'mc4', name: 'Román felhúzás súlyzóval', sets: 3, reps: '10–12', w: 12, pair: true, rest: 90, q: 'dumbbell romanian deadlift' },
+    { id: 'mc5', name: 'Gépes segített húzódzkodás', sets: 2, reps: '6–8', w: null, rest: 90, q: 'assisted pull up machine' },
+    { id: 'mc6', name: 'Váltott karos kábeles lehúzás', sets: 3, reps: '10', w: 20, side: true, rest: 90, q: 'alternating single arm cable lat pulldown' },
+    { id: 'mc7', name: 'Bokapántos lábemelés hátra (kábel)', sets: 3, reps: '12–15', w: 7.5, side: true, rest: 45, q: 'cable glute kickback ankle strap', note: 'Jobb és bal lábbal is.' },
+    { id: 'mc8', name: 'Térdelő face pull kötéllel (csuklyára)', sets: 3, reps: '12', w: 15, rest: 60, q: 'half kneeling face pull rope' },
+    { id: 'mc9', name: 'Oldalemelés', sets: 3, reps: '12–15', w: 4, pair: true, rest: 60, q: 'dumbbell lateral raise' },
+    { id: 'mc10', name: 'Kalapács bicepsz', sets: 3, reps: '10–12', w: 7, pair: true, rest: 60, q: 'dumbbell hammer curl' },
+    { id: 'mc11', name: 'Tricepsz letolás kötéllel', sets: 3, reps: '12', w: 15, rest: 60, q: 'rope triceps pushdown' },
+    { id: 'mc12', name: 'Combtávolító gép', sets: 3, reps: '15', w: 35, rest: 45, q: 'hip abduction machine' }
+  ] }
+] };
+{ const vm = new Map(); for (const P of [DEFAULT_PLAN, ATTILA_PLAN, ATTILA_FULL, ATTILA_ABC, ATTILA_FB, ATTILA_1119]) for (const d of P.days) for (const ex of d.ex) { if (ex.video) vm.set(ex.name, ex.video); for (const x of ex.alts || []) if (x.video) vm.set(x.name, x.video); }
+  for (const l of LIBRARY) if (!vm.has(l.name)) vm.set(l.name, l.video);
+  const fill = (x) => { if (!x.video) x.video = vm.get(x.name) || vm.get(x.name.replace(/ – .*$/, '')) || VIDMAP[x.q] || ''; };
+  for (const d of MONIKA_1119.days) for (const ex of d.ex) { fill(ex); (ex.alts || []).forEach(fill); } }
+const PLANS = { monika1119: { name: 'Mónika – 2026.11.19. (far + hát + váll, kar)', plan: MONIKA_1119 }, monika: { name: 'Mónika – felsőtest A/B/C (régi)', plan: DEFAULT_PLAN }, attila1119: { name: 'Attila – 2026.11.19.', plan: ATTILA_1119 } };
 
 const clone = (o) => JSON.parse(JSON.stringify(o));
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -1176,7 +1225,7 @@ function renderDay(day) {
     const folded = fold && doneAll && !openDone.has(ex.id);
     h += `<article class="card ex${doneAll ? ' done' : ''}${!editMode && isGoing(ex) ? ' going' : ''}${fold && doneAll ? ' muted' : ''}${folded ? ' folded' : ''}" data-ex="${esc(ex.id)}" style="animation-delay:${xi * 40}ms"><div class="exhead">
       <button class="thumb${id ? '' : ' q'}" data-act="video" ${id ? `data-vid="${id}"` : ''} ${thumb} aria-label="Videó"><i>${id ? ICON.play : ICON.search}</i></button>
-      <div class="exinfo"><h3>${esc(ex.name)}</h3><div class="chips"><span>${ex.sets}×${esc(ex.reps)}</span><span>${esc(fmtW(ex))}</span><button class="chip" data-act="restpick" title="Pihenőidő módosítása">⏱ ${ex.rest ? ex.rest + ' mp' : 'nincs pihenő'} ✎</button>${ex.up ? '<span class="up">⬆ emelhetsz</span>' : ''}${ex.bump ? `<span class="up" title="Múltkor a tartomány teteje fölött 2+ ismétlés ment">⬆ +${toU(ex.bump, exU(ex))} ${exU(ex)}, múltkor könnyű volt</span>` : ''}${ex.alt ? '<span class="alt">csere</span>' : ''}${editMode ? '' : '<button class="swap" data-act="swap">⇄ foglalt a gép</button>'}</div></div>
+      <div class="exinfo">${primOf(ex) ? `<small class="mus">${esc(primOf(ex))}</small>` : ''}<h3>${esc(ex.name)}</h3><div class="chips"><span>${ex.sets}×${esc(ex.reps)}</span><span>${esc(fmtW(ex))}</span><button class="chip" data-act="restpick" title="Pihenőidő módosítása">⏱ ${ex.rest ? ex.rest + ' mp' : 'nincs pihenő'} ✎</button>${ex.up ? '<span class="up">⬆ emelhetsz</span>' : ''}${ex.bump ? `<span class="up" title="Múltkor a tartomány teteje fölött 2+ ismétlés ment">⬆ +${toU(ex.bump, exU(ex))} ${exU(ex)}, múltkor könnyű volt</span>` : ''}${ex.alt ? '<span class="alt">csere</span>' : ''}${editMode ? '' : '<button class="swap" data-act="swap">⇄ foglalt a gép</button>'}</div></div>
       ${isBW(ex) ? '' : `<button class="uchip" data-act="exunit" title="Mértékegység ennél a gyakorlatnál">${exU(ex) === 'lb' ? 'font' : 'kg'}</button>`}</div>`;
     if (ex.note) h += `<div class="note">${esc(ex.note)}</div>`;
     if (folded) {
@@ -1416,6 +1465,34 @@ function muscleOf(name) {
   if (/combhajl|felhuz|roman|thrust|csipoemel|farizom|good morning|rugas|kickback|lendites|swing|bokapant|labemel|combtavol|pull-through|athuzas|bekapump|oldallepes|kagylo/.test(n)) return 'Comb hátul, far';
   if (/labtol|combfeszit|labnyujt|guggol|kitores|bolgar|fellep|combkozel|hack/.test(n)) return 'Comb elöl';
   return null;
+}
+// a kártyán megjelenő rövid címke: mire megy elsősorban (ex.mus felülírja)
+function primOf(ex) {
+  if (ex.mus) return ex.mus;
+  const n = fold(ex.name);
+  if (/vadli/.test(n)) return 'Vádli';
+  if (/(^|\s)has|terdemel|plank|crunch|ab wheel|pallof|orosz csavar/.test(n)) return 'Has';
+  if (/bicepsz|kalapacs|curl/.test(n)) return 'Bicepsz';
+  if (/tricepsz|letolas|french|francia|tolodzkod/.test(n)) return 'Tricepsz';
+  if (/oldalemel/.test(n)) return 'Váll (oldalsó)';
+  if (/face pull|hattal|csuklya|forditott repul|tarogato.*forditott/.test(n)) return 'Váll (hátsó), felső hát';
+  if (/vallnyom|vallgep|arnold|eloreemel/.test(n)) return 'Váll (elülső)';
+  if (/^felhuzas|klasszikus felhuz|trap bar/.test(n)) return 'Far, comb hátul, hát';
+  if (/szumo felhuz/.test(n)) return 'Far, belső comb, comb hátul';
+  if (/roman|merev|good morning|combhajl/.test(n)) return 'Comb hátul, far';
+  if (/hiperext/.test(n)) return /popsira/.test(n) ? 'Far' : 'Derék, far';
+  if (/combkozel/.test(n)) return 'Belső comb';
+  if (/thrust|csipoemel|farizom|rugas|kickback|bokapant|combtavol|athuzas|bekapump|oldallepes|kagylo|lendites|swing/.test(n)) return 'Far';
+  if (/bolgar|kitores|fellep|szumo guggol/.test(n)) return 'Far, comb';
+  if (/labtol|guggol|hack/.test(n)) return 'Comb elöl, far';
+  if (/combfeszit|labnyujt/.test(n)) return 'Comb elöl';
+  if (/evez/.test(n)) return 'Hát (közép), bicepsz';
+  if (/nyujtott karral|pullover/.test(n)) return 'Hát (széles hátizom)';
+  if (/lehuz|huzodz|chin|pull-?up/.test(n)) return 'Hát (széles hátizom), bicepsz';
+  if (/tarogat|mellrepul|crossover/.test(n)) return 'Mell';
+  if (/ferde/.test(n) && /nyom/.test(n)) return 'Mell (felső), váll';
+  if (/mell|fekvenyom|fekvotamasz/.test(n)) return 'Mell, tricepsz';
+  return '';
 }
 function muscleCard(X) {
   const W = 7 * 86400000, now = weekStart(Date.now());

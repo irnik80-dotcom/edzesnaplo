@@ -25,6 +25,10 @@
   --acc:#93a6dd;--acc2:#b6c3ea;--soft:rgba(147,166,221,.14);--shadow:0 10px 30px -12px rgba(0,0,0,.6)}}
 *{box-sizing:border-box}
 [hidden]{display:none!important}#exform.logm .nolog{display:none}
+#editdlg{max-height:90vh;overflow:auto}.edl{margin:10px 0;text-align:left}.edi{border-top:1px solid var(--line);padding:8px 0}
+.edh{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px}
+.eds{display:grid;grid-template-columns:24px 1fr 1fr 38px;gap:6px;align-items:center;margin:4px 0}.eds input{min-width:0;padding:6px}
+.eds:has(> input:only-of-type){grid-template-columns:24px 1fr 38px}
 .enote{display:flex;gap:6px;align-items:center;margin-top:8px}.enote .nt{flex:1;min-width:0;font-size:13px;padding:6px 8px}
 .fchip{border:1px solid var(--line);background:transparent;border-radius:999px;padding:3px 8px;font-size:15px;opacity:.55}.fchip.on{opacity:1;border-color:var(--acc);background:color-mix(in srgb,var(--acc) 18%,transparent)}
 .inote{font-size:12px;color:var(--mute);font-style:italic;margin:1px 0 3px}.snote{font-size:13px;margin:6px 0;color:var(--ink)}
@@ -232,6 +236,7 @@ h1.pass.exp{color:var(--del)}
 </dialog>
 
 <dialog id="done"></dialog>
+<dialog id="editdlg"></dialog>
 <dialog id="swapdlg"></dialog>
 
 <dialog id="restdlg">
@@ -815,6 +820,68 @@ function noteBox(day, ex) {
   const cn = S.cur[day.id] || {}, fv = (cn.feel || {})[ex.id] || '', nt = (cn.notes || {})[ex.id] || '';
   return `<div class="enote">${Object.entries(FEEL).map(([k, v]) => `<button class="fchip${fv === k ? ' on' : ''}" data-act="feel" data-v="${k}" title="${v}">${v.split(' ')[0]}</button>`).join('')}<input class="nt" type="text" value="${esc(nt)}" placeholder="📝 megjegyzés (pl. ma nehezen ment)"></div>`;
 }
+// ---------- lezárt edzés javítása ----------
+let editSid = null;
+function openLogEdit(sid) {
+  const ss = S.sessions.find((x) => x.id === sid); if (!ss) return; editSid = sid;
+  const num = (v) => v == null || v === '' ? '' : v;
+  let h = `<h2>Edzés javítása</h2><div class="meta">${esc(fmtDate(ss.date))} · ${esc(ss.dayName || '')}</div><div class="edl">`;
+  ss.items.forEach((it, k) => {
+    const u = it.u || unit(), lab = it.assist ? 'rásegítés (' + u + ')' : it.plus ? '+ súly (' + u + ')' : it.bw ? '' : 'súly (' + u + ')';
+    h += `<div class="edi" data-k="${k}"><div class="edh"><b>${esc(it.name)}</b><button type="button" class="btn s w" data-ed="delit" title="Gyakorlat törlése ebből az edzésből">🗑</button></div>`;
+    it.sets.forEach((z, j) => {
+      const wv = it.assist ? z.a : it.plus ? z.p : it.bw ? null : z.w;
+      h += `<div class="eds" data-j="${j}"><span>${z.wu ? 'B' : j + 1 - it.sets.slice(0, j).filter((x) => x.wu).length}.</span>${it.bw && !it.plus && !it.assist ? '' : `<input class="ew" type="number" step="any" inputmode="decimal" value="${wv == null ? '' : toU(wv, u)}" placeholder="${esc(lab)}">`}<input class="er" type="number" inputmode="numeric" value="${num(z.r)}" placeholder="ism."><button type="button" class="btn s" data-ed="delset">✕</button></div>`;
+    });
+    h += `<button type="button" class="btn s" data-ed="addset">+ sorozat</button></div>`;
+  });
+  h += `</div><div class="row"><button type="button" class="btn" data-ed="cancel">Mégse</button><button type="button" class="btn p" data-ed="save">Mentés</button></div>`;
+  $('editdlg').innerHTML = h; if (!$('editdlg').open) $('editdlg').showModal();
+}
+$('editdlg').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-ed]'); if (!b) return;
+  const act = b.dataset.ed, it = b.closest('.edi'), row = b.closest('.eds');
+  if (act === 'cancel') { $('editdlg').close(); return; }
+  if (act === 'delset') { row.remove(); return; }
+  if (act === 'delit') { if (confirm('Törlöd ezt a gyakorlatot ebből az edzésből?')) it.remove(); return; }
+  if (act === 'addset') { const last = it.querySelector('.eds:last-of-type'); if (last) { const c = last.cloneNode(true); c.dataset.j = 'new'; it.insertBefore(c, b); } return; }
+  if (act === 'save') {
+    const ss = S.sessions.find((x) => x.id === editSid); if (!ss) return;
+    const bw = S.settings.bw, items = [];
+    for (const el of $('editdlg').querySelectorAll('.edi')) {
+      const it = ss.items[+el.dataset.k], u = it.u || unit(), sets = [];
+      for (const r of el.querySelectorAll('.eds')) {
+        const old = r.dataset.j === 'new' ? {} : it.sets[+r.dataset.j] || {};
+        const z = Object.assign({}, old); delete z.t; if (old.t && r.dataset.j !== 'new') z.t = old.t;
+        z.r = r.querySelector('.er').value === '' ? null : +r.querySelector('.er').value;
+        const wi = r.querySelector('.ew'), v = wi && wi.value !== '' ? fromU(wi.value, u) : null;
+        const base = old.a != null ? old.w + old.a : old.p != null ? old.w - old.p : bw; // az akkori testsúly
+        if (it.assist) { z.a = v || 0; z.w = base ? Math.max(0, base - z.a) : null; }
+        else if (it.plus) { z.p = v || 0; z.w = base ? base + z.p : null; }
+        else if (!it.bw) z.w = v;
+        if (r.dataset.j === 'new') delete z.wu;
+        sets.push(z);
+      }
+      if (sets.length) items.push(Object.assign({}, it, { sets }));
+    }
+    ss.items = items; ss.edited = Date.now();
+    // ha ez a gyakorlat legutóbbi edzése, a tervben is a javított súly legyen a következő
+    for (const it of items) {
+      const last = S.sessions.find((x) => x.items.some((z) => z.ex === it.ex)); if (!last || last.id !== ss.id) continue;
+      for (const d of S.plan.days) for (const ex of d.ex) if (ex.id === it.ex && !it.alt) {
+        const work = it.sets.filter((z) => !z.wu), [mn] = range(ex.reps), ok = work.filter((z) => (z.r || 0) >= mn), pool = ok.length ? ok : work;
+        if (!pool.length) continue;
+        if (it.plus) ex.w = Math.max(...pool.map((z) => z.p || 0)) || null;
+        else if (it.assist) ex.w = Math.min(...pool.map((z) => z.a || 0));
+        else if (!it.bw) { const ws = pool.map((z) => z.w).filter((w) => w != null); if (ws.length) ex.w = Math.max(...ws); }
+        ex.bump = 0; ex.up = false;
+      }
+    }
+    if (bw && ss.t0) { const k = estKcal(ss, bw); if (k != null) { ss.kcal = k; ss.kcalNet = Math.max(0, k - restBurn(ss.t0, ss.date, bw)); } }
+    save(); if (Gym.cloud) Gym.cloud.addSession(clone(ss)).catch(console.warn);
+    $('editdlg').close(); if ($('loglist') && LOGX) $('loglist').innerHTML = logList(LOGX); else render(); toast('Napló javítva');
+  }
+});
 function sessVol(s) {
   let v = 0;
   for (const it of s.items) { if (it.bw || it.assist) continue; for (const z of it.sets) if (!z.wu) v += (it.plus ? (z.p || 0) : (z.w || 0)) * (z.r || 0) * (it.pair || it.side ? 2 : 1); }
@@ -1470,7 +1537,7 @@ function logList(X) {
   if (q.length && !list.length) h += '<div class="empty">Nincs ilyen edzés vagy gyakorlat a naplóban.</div>';
   for (const { s, items } of list) {
     const mins = s.t0 ? Math.round((s.date - s.t0) / 60000) : 0, kc = kcalOf(s, !X.ro);
-    h += `<div class="card log"><div class="h"><b>${esc(fmtDate(s.date))} · ${esc(s.dayName || s.day)}</b>${mins || sessVol(s) ? `<span class="meta">${sessVol(s) ? '🏋 ' + sessVol(s).toLocaleString('hu-HU') + ' kg' + (mins ? ' · ' : '') : ''}${mins ? mins + ' perc' + (kc != null ? ' · ' + kcalTxt(kc, netOf(s, !X.ro)) + ' · ' + (kc / mins).toFixed(1).replace('.', ',') + ' kcal/perc' : '') : ''}</span>` : ''}${X.ro ? '' : `<button class="btn s" data-act="logadd" data-id="${esc(s.id)}" title="Gyakorlat hozzáadása utólag">＋</button> <button class="btn s" data-act="lognote" data-id="${esc(s.id)}" title="Megjegyzés az edzéshez">📝</button> <button class="btn s w" data-act="logdel" data-id="${esc(s.id)}">🗑</button>`}</div><ul>`;
+    h += `<div class="card log"><div class="h"><b>${esc(fmtDate(s.date))} · ${esc(s.dayName || s.day)}</b>${mins || sessVol(s) ? `<span class="meta">${sessVol(s) ? '🏋 ' + sessVol(s).toLocaleString('hu-HU') + ' kg' + (mins ? ' · ' : '') : ''}${mins ? mins + ' perc' + (kc != null ? ' · ' + kcalTxt(kc, netOf(s, !X.ro)) + ' · ' + (kc / mins).toFixed(1).replace('.', ',') + ' kcal/perc' : '') : ''}</span>` : ''}${X.ro ? '' : `<button class="btn s" data-act="logadd" data-id="${esc(s.id)}" title="Gyakorlat hozzáadása utólag">＋</button> <button class="btn s" data-act="logedit" data-id="${esc(s.id)}" title="Sorozatok javítása">✎</button> <button class="btn s" data-act="lognote" data-id="${esc(s.id)}" title="Megjegyzés az edzéshez">📝</button> <button class="btn s w" data-act="logdel" data-id="${esc(s.id)}">🗑</button>`}</div><ul>`;
     for (const it of items) {
       const pe = exById(it.ex), u = pe ? exU(pe) : (it.u || unit());
       const nb = (it.feel || it.note) ? `<div class="inote">${it.feel ? FEEL[it.feel] : ''}${it.feel && it.note ? ' · ' : ''}${it.note ? '„' + esc(it.note) + '”' : ''}</div>` : '';
@@ -1756,6 +1823,7 @@ $('main').addEventListener('click', (e) => {
     case 'logadd': openLogAdd(b.dataset.id); break;
     case 'logdet': { const id = b.dataset.id; openDet.has(id) ? openDet.delete(id) : openDet.add(id); if ($('loglist') && LOGX) $('loglist').innerHTML = logList(LOGX); } break;
     case 'lognote': { const ss = S.sessions.find((x) => x.id === b.dataset.id); if (!ss) break; const v = prompt('Megjegyzés ehhez az edzéshez:', ss.note || ''); if (v === null) break; ss.note = v.trim(); save(); if (Gym.cloud) Gym.cloud.addSession(clone(ss)).catch(console.warn); if ($('loglist') && LOGX) $('loglist').innerHTML = logList(LOGX); else render(); } break;
+    case 'logedit': openLogEdit(b.dataset.id); break;
     case 'logdel': if (confirm('Törlöd ezt az edzést a naplóból?')) { S.sessions = S.sessions.filter((s) => s.id !== b.dataset.id); if (Gym.cloud) Gym.cloud.delSession(b.dataset.id).catch(console.warn); save(); render(); } break;
     case 'unit': S.settings.unit = b.dataset.u; save(); render(); break;
     case 'exunit': ex.unit = exU(ex) === 'lb' ? 'kg' : 'lb'; save(); render(); break;

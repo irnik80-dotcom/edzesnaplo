@@ -260,6 +260,7 @@ h1.pass.exp{color:var(--del)}
     <label class="ck"><input type="checkbox" name="pair"> Két súlyzó (2×)</label>
     <label class="ck"><input type="checkbox" name="side"> Oldalanként</label>
     <label class="ck nolog"><input type="checkbox" name="assist"> Rásegített gép (a súly = rásegítés)</label>
+    <label class="ck nolog"><input type="checkbox" name="plus"> Testsúlyos + plusz súly (a súly = rátett súly)</label>
     <label class="nolog">Videó link<input type="text" name="video" inputmode="url" autocapitalize="off" placeholder="https://youtube.com/shorts/..."></label>
     <label class="nolog">Megjegyzés<input type="text" name="note"></label>
     <div class="row">
@@ -597,10 +598,10 @@ function libMatch(name) {
   return bs >= 2 || (bs === 1 && words(best.name).some((w) => w.length >= 6 && words(name).includes(w))) ? best : null;
 }
 const vidFor = (ex) => (ex.q && (VIDMAP[ex.q] || VIDMAP[ex.q.replace(/ form$/, '')])) || ((LIBRARY.find((l) => l.name === ex.name) || libMatch(ex.name) || {}).video) || '';
-const ASSIST_RE = /segített húzódzkodás|rásegít|assisted/i;
+const ASSIST_RE = /segített húzódzkodás|rásegít|assisted/i, PLUS_RE = /hiperext/i;
 const PUMP_DAY = () => JSON.parse(JSON.stringify(MONIKA_1119.days.find((d) => d.id === 'mp')));
 function upgradePlan(plan) {
-  if (plan && plan.days) for (const d of plan.days) for (const ex of d.ex) if (ASSIST_RE.test(ex.name || '') && ex.assist === undefined) ex.assist = true;
+  if (plan && plan.days) for (const d of plan.days) for (const ex of d.ex) { if (ASSIST_RE.test(ex.name || '') && ex.assist === undefined) ex.assist = true; if (PLUS_RE.test(ex.name || '') && ex.plus === undefined) ex.plus = true; }
   if (plan && plan.days && !plan.days.some((d) => d.id === 'mp') && plan.days.some((d) => d.ex.some((e) => /^(Bicepsz súlyzóval|Csípőemelés rúddal \(hip thrust\)|Lat gép, lehúzás két kézzel)$/.test(e.name))) && typeof MONIKA_1119 !== 'undefined') plan.days.push(PUMP_DAY());
   const def = new Map(); for (const k in PLANS) for (const d of PLANS[k].plan.days) for (const ex of d.ex) def.set(ex.id, ex);
   { const VFIX = { ar8nav0jGoE: 'S2yhz3klwdU', jF5CK2nk0p8: 'IeOqdw9WI90' }; // pontatlan videók cseréje a mentett terveken
@@ -624,9 +625,10 @@ function adoptPlan(plan, old) {
   for (const d of plan.days) for (const ex of d.ex) {
     const o = byName.get(norm(ex.name));
     if (o && !used.has(o.id)) { used.add(o.id); ex.id = o.id; if (o.video) ex.video = o.video; if (o.unit) ex.unit = o.unit; ex.pair = !!o.pair; ex.side = !!o.side; if (o.w != null && ex.w != null) ex.w = o.w; }
-    if (ex.w == null && !ex.assist) continue;
+    if (ex.w == null && !ex.assist && !ex.plus) continue;
     const s = S.sessions.find((z) => z.items.some((it) => it.ex === ex.id || norm(it.name) === norm(ex.name))); if (!s) continue;
     const it = s.items.find((z) => z.ex === ex.id || norm(z.name) === norm(ex.name));
+    if (ex.plus) { const wk = it.sets.filter((z) => !z.wu); if (wk.length) { const [mn] = range(ex.reps), ok = wk.filter((z) => (z.r || 0) >= mn); const pw = ok.length ? Math.max(...ok.map((z) => z.p || 0)) : 0; ex.w = pw || null; } continue; }
     if (ex.assist) { const wk = it.sets.filter((z) => !z.wu && z.a != null); if (wk.length) { const [mn] = range(ex.reps), ok = wk.filter((z) => (z.r || 0) >= mn); ex.w = ok.length ? Math.min(...ok.map((z) => z.a)) : Math.max(...wk.map((z) => z.a)); } continue; }
     const work = it.sets.filter((z) => !z.wu && z.w != null); if (!work.length) continue;
     const [min] = range(ex.reps), ok = work.filter((z) => (z.r || 0) >= min);
@@ -695,7 +697,7 @@ Gym.lastWho = () => { try { return localStorage.getItem('edzesnaplo.who'); } cat
 
 // ---------- segédek ----------
 const unit = () => S.settings.unit;
-const isBW = (ex) => ex.w == null && !ex.assist;
+const isBW = (ex) => ex.w == null && !ex.assist && !ex.plus;
 // gyakorlatonkénti mértékegység; testsúlyos gyakorlatnál mindig az alapértelmezett
 const exU = (ex) => (ex && !isBW(ex) && ex.unit) || unit();
 function toU(kg, u) {
@@ -729,6 +731,7 @@ function fmtW(ex, w) {
   w = w === undefined ? ex.w : w;
   if (isBW(ex)) return 'testsúly' + (S.settings.bw ? ` (${toU(S.settings.bw)} ${unit()})` : '');
   if (ex.assist) return w == null ? 'rásegítés: ?' : `−${toU(w, exU(ex))} ${exU(ex)} rásegítés`;
+  if (ex.plus) return !w ? 'testsúly (+ plusz súly adható)' : `testsúly + ${toU(w, exU(ex))} ${exU(ex)}`;
   if (w == null) return '–';
   return (ex.pair ? '2×' : '') + toU(w, exU(ex)) + ' ' + exU(ex) + (ex.side ? ' / oldal' : '');
 }
@@ -891,7 +894,8 @@ function finishDay(day) {
     const all = (c.sets[ex.id] || []).filter((s) => s && s.d).map((s) => Object.assign(s.wu ? { w: s.w, r: s.r, wu: 1 } : { w: s.w, r: s.r }, s.t ? { t: s.t } : {}));
     if (!all.length) continue;
     if (ex.assist) for (const z of all) { z.a = z.w || 0; z.w = S.settings.bw ? Math.max(0, S.settings.bw - z.a) : null; }
-    items.push(Object.assign({ ex: ex.id, name: ex.name, pair: !!ex.pair, side: !!ex.side, bw: isBW(ex), u: exU(ex), rest: ex.rest == null ? S.settings.rest : ex.rest, sets: all }, ex.assist ? { assist: 1 } : {}, ex.alt ? { alt: ex.alt } : {}));
+    if (ex.plus) for (const z of all) { z.p = z.w || 0; z.w = S.settings.bw ? S.settings.bw + z.p : null; }
+    items.push(Object.assign({ ex: ex.id, name: ex.name, pair: !!ex.pair, side: !!ex.side, bw: isBW(ex), u: exU(ex), rest: ex.rest == null ? S.settings.rest : ex.rest, sets: all }, ex.assist ? { assist: 1 } : {}, ex.plus ? { plus: 1 } : {}, ex.alt ? { alt: ex.alt } : {}));
     if (ex.alt) continue;
     ex.bump = 0;
     const sets = all.filter((s) => !s.wu);
@@ -899,6 +903,14 @@ function finishDay(day) {
     const target = (c.sets[ex.id] || []).filter((s) => s && !s.wu).length || ex.sets;
     const [, max] = range(ex.reps);
     if (isBW(ex)) { ex.up = sets.length >= target && sets.every((s) => (s.r || 0) >= max); continue; }
+    if (ex.plus) { // plusz súly: a legnagyobb, amivel megvolt a tartomány alja; ha túl könnyű volt, emelés
+      const [mn] = range(ex.reps), ok = sets.filter((z) => (z.r || 0) >= mn).map((z) => z.p || 0);
+      const pw = ok.length ? Math.max(...ok) : Math.min(...sets.map((z) => z.p || 0));
+      ex.w = pw || null; ex.up = sets.length >= target && sets.every((z) => (z.r || 0) >= max);
+      const atP = sets.filter((z) => (z.p || 0) === pw);
+      if (max && atP.length && atP.filter((z) => (z.r || 0) >= max + 2).length * 2 >= atP.length) { const inc = Math.max(2.5, incFor(ex, pw)); ex.w = pw + inc; ex.bump = inc; ex.up = false; }
+      continue;
+    }
     if (ex.assist) { // a legkisebb rásegítés, amivel még megvolt a tartomány alja; ha túl könnyű volt, csökkentés
       const [mn] = range(ex.reps), ok = sets.filter((z) => (z.r || 0) >= mn).map((z) => z.a);
       const a = ok.length ? Math.min(...ok) : Math.max(...sets.map((z) => z.a));
@@ -1066,7 +1078,7 @@ function findPRs(sess) {
 function prevLine(ex) {
   const p = lastOf(ex.id); if (!p) return '';
   const u = exU(ex);
-  const sets = p.it.sets.filter((z) => !z.wu).map((z) => p.it.assist ? '−' + toU(z.a || 0, u) + '×' + (z.r == null ? '?' : z.r) : p.it.bw ? (z.r == null ? '?' : z.r) : (z.w == null ? '–' : toU(z.w, u)) + '×' + (z.r == null ? '?' : z.r)).join(', ') + (p.it.assist ? ' (' + u + ' rásegítés)' : '');
+  const sets = p.it.sets.filter((z) => !z.wu).map((z) => p.it.plus ? (z.p ? '+' + toU(z.p, u) + '×' : '') + (z.r == null ? '?' : z.r) : p.it.assist ? '−' + toU(z.a || 0, u) + '×' + (z.r == null ? '?' : z.r) : p.it.bw ? (z.r == null ? '?' : z.r) : (z.w == null ? '–' : toU(z.w, u)) + '×' + (z.r == null ? '?' : z.r)).join(', ') + (p.it.assist ? ' (' + u + ' rásegítés)' : p.it.plus ? ' (' + u + ' plusz súly)' : '');
   return `<div class="prev">↺ Legutóbb (${esc(new Date(p.s.date).toLocaleDateString('hu-HU', { month: 'short', day: 'numeric' }))}): <b>${esc(sets)}</b>${p.it.bw ? ' ism.' : ''}</div>`;
 }
 
@@ -1224,7 +1236,7 @@ function renderDay(day) {
       rows.forEach((s, i) => {
         const w = isBW(ex) ? (s.d ? s.w : S.settings.bw) : s.w;
         h += `<div class="sw"><div class="set${s.d ? ' d' : ''}${s.wu ? ' wu' : ''}" data-i="${i}"><div class="n" title="${s.wu ? 'bemelegítő' : ''}">${s.wu ? 'B' : (++no) + '.'}</div>
-          <label><input class="w" type="number" inputmode="decimal" step="any" value="${w == null ? '' : toU(w, exU(ex))}" placeholder="${ex.assist ? 'rásegítés' : isBW(ex) ? 'súly' : '–'}"><span>${exU(ex)}</span></label>
+          <label><input class="w" type="number" inputmode="decimal" step="any" value="${w == null ? '' : toU(w, exU(ex))}" placeholder="${ex.assist ? 'rásegítés' : ex.plus ? '+ súly' : isBW(ex) ? 'súly' : '–'}"><span>${exU(ex)}</span></label>
           <label><input class="r" type="number" inputmode="numeric" value="${s.r != null ? s.r : ''}" placeholder="${s.wu ? '12' : esc(ex.reps)}"><span>ism.</span></label>
           <button class="ok" data-act="tick" aria-label="Kész">${ICON.check}</button></div></div>`;
       });
@@ -1424,6 +1436,7 @@ function logList(X) {
     h += `<div class="card log"><div class="h"><b>${esc(fmtDate(s.date))} · ${esc(s.dayName || s.day)}</b>${mins ? `<span class="meta">${mins} perc${kc != null ? ' · ' + kcalTxt(kc, netOf(s, !X.ro)) + ' · ' + (kc / mins).toFixed(1).replace('.', ',') + ' kcal/perc' : ''}</span>` : ''}${X.ro ? '' : `<button class="btn s" data-act="logadd" data-id="${esc(s.id)}" title="Gyakorlat hozzáadása utólag">＋</button> <button class="btn s w" data-act="logdel" data-id="${esc(s.id)}">🗑</button>`}</div><ul>`;
     for (const it of items) {
       const pe = exById(it.ex), u = pe ? exU(pe) : (it.u || unit());
+      if (it.plus) { h += `<li>${esc(it.name)}: <span>${it.sets.map((x) => (x.wu ? 'B ' : '') + (x.p ? '+' + toU(x.p, it.u) + '×' : '') + (x.r == null ? '?' : x.r)).join(', ')} (${it.sets.some((x) => x.p) ? esc(it.u || unit()) + ' plusz súly' : 'testsúly'})</span></li>`; continue; }
       if (it.assist) { h += `<li>${esc(it.name)}: <span>${it.sets.map((x) => (x.wu ? 'B ' : '') + '−' + toU(x.a || 0, it.u) + '×' + (x.r == null ? '?' : x.r)).join(', ')} (${esc(it.u || unit())} rásegítés)</span></li>`; continue; }
       if (it.bw) { const bw = it.sets.find((x) => x.w != null); h += `<li>${esc(it.name)}: <span>${it.sets.map((x) => (x.wu ? 'B ' : '') + (x.r == null ? '?' : x.r)).join(', ')} ism.${bw ? ` (testsúly ${toU(bw.w)} ${unit()})` : ''}</span></li>`; }
       else h += `<li>${esc(it.name)}: <span>${it.sets.map((x) => (x.wu ? 'B ' : '') + (x.w == null ? '–' : toU(x.w, u)) + '×' + (x.r == null ? '?' : x.r)).join(', ')} (${u})</span></li>`;
@@ -1438,7 +1451,7 @@ function sessDetail(s, exById) {
   rows.sort((a, b) => a.z.t - b.z.t);
   const hms = (t) => new Date(t).toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   const val = (it, z) => { const pe = exById(it.ex), u = pe ? exU(pe) : (it.u || unit());
-    return it.assist ? `−${toU(z.a || 0, it.u)} ${it.u || unit()} × ${z.r ?? '?'}` : it.bw ? `${z.r ?? '?'} ism.` : `${z.w == null ? '–' : toU(z.w, u)} ${u} × ${z.r ?? '?'}`; };
+    return it.plus ? `${z.p ? '+' + toU(z.p, it.u) + ' ' + (it.u || unit()) : 'testsúly'} × ${z.r ?? '?'}` : it.assist ? `−${toU(z.a || 0, it.u)} ${it.u || unit()} × ${z.r ?? '?'}` : it.bw ? `${z.r ?? '?'} ism.` : `${z.w == null ? '–' : toU(z.w, u)} ${u} × ${z.r ?? '?'}`; };
   let h = '<div class="det">';
   if (!rows.length) h += '<p class="meta">Ennél az edzésnél még nem volt időbélyeg (a részletes időadatok nov. 18-tól vannak).</p>';
   else {
@@ -1784,7 +1797,7 @@ $('libres').addEventListener('click', (e) => {
   const b = e.target.closest('[data-li]'); if (!b) return;
   const l = LIBRARY[+b.dataset.li], f = $('exform'); libSel = +b.dataset.li;
   f.name.value = l.name; f.sets.value = l.sets; f.reps.value = l.reps; f.rest.value = l.rest;
-  f.unit.value = l.unit || ''; f.w.value = l.w == null ? '' : toU(l.w, l.unit || S.settings.unit); f.pair.checked = !!l.pair; f.side.checked = !!l.side; f.assist.checked = ASSIST_RE.test(l.name); f.video.value = l.video; f.note.value = l.note || '';
+  f.unit.value = l.unit || ''; f.w.value = l.w == null ? '' : toU(l.w, l.unit || S.settings.unit); f.pair.checked = !!l.pair; f.side.checked = !!l.side; f.assist.checked = ASSIST_RE.test(l.name); f.plus.checked = PLUS_RE.test(l.name); f.video.value = l.video; f.note.value = l.note || '';
   f.dataset.q = l.q; fillLib();
 });
 
@@ -1796,7 +1809,7 @@ function openEx(day, i) {
   const f = $('exform');
   f.name.value = ex.name; f.sets.value = ex.sets; f.reps.value = ex.reps;
   f.unit.value = ex.unit || ''; f.wu.value = ex.wu || 0; f.w.value = ex.w == null ? '' : toU(ex.w, exU(ex)); f.rest.value = ex.rest == null ? '' : ex.rest;
-  f.pair.checked = !!ex.pair; f.side.checked = !!ex.side; f.assist.checked = !!ex.assist; f.video.value = ex.video || ''; f.note.value = ex.note || '';
+  f.pair.checked = !!ex.pair; f.side.checked = !!ex.side; f.assist.checked = !!ex.assist; f.plus.checked = !!ex.plus; f.video.value = ex.video || ''; f.note.value = ex.note || '';
   $('exdlg-title').textContent = i >= 0 ? 'Gyakorlat módosítása' : 'Új gyakorlat';
   $('exdlg-w').textContent = 'Súly (a választott mértékegységben), üresen: testsúly';
   $('exdel').hidden = i < 0;
@@ -1840,7 +1853,7 @@ $('exdlg').addEventListener('close', () => {
   Object.assign(ex, {
     name: f.name.value.trim(), sets: Math.max(1, +f.sets.value || 1), reps: f.reps.value.trim(),
     wu: Math.max(0, Math.min(5, +f.wu.value || 0)), unit: f.unit.value, w: fromU(f.w.value, f.unit.value || unit()), rest: f.rest.value === '' ? null : Math.max(0, +f.rest.value),
-    pair: f.pair.checked, side: f.side.checked, assist: f.assist.checked || undefined, video: f.video.value.trim(), note: f.note.value.trim(), q: f.dataset.q || ex.q || ''
+    pair: f.pair.checked, side: f.side.checked, assist: f.assist.checked || undefined, plus: f.plus.checked || undefined, video: f.video.value.trim(), note: f.note.value.trim(), q: f.dataset.q || ex.q || ''
   });
   if (!ex.video) ex.video = vidFor(ex);
   if (ex.w !== oldW) { ex.up = false; ex.bump = 0; }

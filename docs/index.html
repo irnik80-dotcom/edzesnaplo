@@ -278,7 +278,7 @@ h1.pass.exp{color:var(--del)}
 <script>
 'use strict';
 const KEY = 'edzesnaplo.v1';
-const APPVER = '2026-11-22 08:40 UTC';
+const APPVER = '2026-11-22 09:44 UTC';
 const LB = 2.20462;
 const YT = (id) => 'https://www.youtube.com/shorts/' + id;
 
@@ -641,7 +641,23 @@ function adoptPlan(plan, old) {
   }
   return plan;
 }
+// javítás: pluszsúlyos / rásegített gyakorlatnál a súly mezőbe tévesen a testsúly került (amikor a gyakorlat még testsúlyos volt)
+function fixPlusLeak(s) {
+  let ch = false;
+  for (const it of s.items || []) if (it.plus) for (const z of it.sets) if (z.p && z.w != null && Math.abs(z.w - 2 * z.p) < 0.01) { z.w -= z.p; z.p = 0; ch = true; }
+  return ch;
+}
+function fixCurLeak() {
+  const bw = S.settings.bw; if (!bw) return;
+  for (const d of S.plan.days) for (const ex of d.ex) {
+    if ((ex.plus || ex.assist) && ex.w != null && Math.abs(ex.w - bw) < 0.01) ex.w = null;
+    const c = S.cur[d.id]; if (!c || !c.sets) continue;
+    if (ex.plus || ex.assist) for (const st of c.sets[ex.id] || []) if (st && !st.d && st.w != null && Math.abs(st.w - bw) < 0.01) st.w = ex.w;
+  }
+}
 let S = load();
+for (const s of S.sessions || []) fixPlusLeak(s);
+try { fixCurLeak(); } catch (e) { console.warn(e); }
 upgradePlan(S.plan);
 if (S.settings.pass === undefined) S.settings.pass = '2026-11-18';
 if (S.settings.bw && !S.settings.bwLog) S.settings.bwLog = [{ t: S.settings.bwAt || Date.now(), kg: S.settings.bw }];
@@ -681,6 +697,8 @@ Gym.attach = async (api, uid) => {
   }
   S.sessions = cs.sort((a, b) => b.date - a.date);
   S.owner = uid;
+  for (const s of S.sessions) if (fixPlusLeak(s)) api.addSession(clone(s)).catch(console.warn);
+  fixCurLeak();
   if (S.settings.bw && !S.settings.bwLog) S.settings.bwLog = [{ t: S.settings.bwAt || Date.now(), kg: S.settings.bw }];
   if (dayById(S.tab) || !S.tab) { const sd = suggestDay(); if (sd) S.tab = S.lastDay = sd; }
   Gym.cloud = api;
@@ -908,7 +926,7 @@ function finishDay(day) {
     const all = (c.sets[ex.id] || []).filter((s) => s && s.d).map((s) => Object.assign(s.wu ? { w: s.w, r: s.r, wu: 1 } : { w: s.w, r: s.r }, s.t ? { t: s.t } : {}));
     if (!all.length) continue;
     if (ex.assist) for (const z of all) { z.a = z.w || 0; z.w = S.settings.bw ? Math.max(0, S.settings.bw - z.a) : null; }
-    if (ex.plus) for (const z of all) { z.p = z.w || 0; z.w = S.settings.bw ? S.settings.bw + z.p : null; }
+    if (ex.plus) for (const z of all) { z.p = z.w || 0; if (S.settings.bw && Math.abs(z.p - S.settings.bw) < 0.01) z.p = 0; z.w = S.settings.bw ? S.settings.bw + z.p : null; }
     items.push(Object.assign({ ex: ex.id, name: ex.name, pair: !!ex.pair, side: !!ex.side, bw: isBW(ex), u: exU(ex), rest: ex.rest == null ? S.settings.rest : ex.rest, sets: all }, ex.assist ? { assist: 1 } : {}, ex.plus ? { plus: 1 } : {}, (c.feel || {})[ex.id] ? { feel: c.feel[ex.id] } : {}, (c.notes || {})[ex.id] ? { note: c.notes[ex.id] } : {}, ex.alt ? { alt: ex.alt } : {}));
     if (ex.alt) continue;
     ex.bump = 0;

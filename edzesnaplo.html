@@ -809,8 +809,11 @@ function liveVol(day) {
   const c = S.cur[day.id]; if (!started(c)) return 0;
   let vol = 0;
   for (const ex of dayEx(day)) {
-    if (isBW(ex) || ex.assist) continue; // testsúlyos / rásegített: nem számít bele (pluszsúlyosnál csak a rátett súly)
-    for (const z of c.sets[ex.id] || []) if (z && z.d && !z.wu) vol += (z.w || 0) * (z.r || 0) * (ex.pair || ex.side ? 2 : 1);
+    const bw = S.settings.bw || 0, f = bwFrac(ex.name);
+    for (const z of c.sets[ex.id] || []) if (z && z.d && !z.wu) {
+      const load = isBW(ex) ? f * bw : ex.assist ? f * Math.max(0, bw - (z.w || 0)) : ex.plus ? f * bw + (z.w || 0) : (z.w || 0) * (ex.pair || ex.side ? 2 : 1);
+      vol += load * (z.r || 0);
+    }
   }
   return Math.round(vol);
 }
@@ -882,9 +885,30 @@ $('editdlg').addEventListener('click', (e) => {
     $('editdlg').close(); if ($('loglist') && LOGX) $('loglist').innerHTML = logList(LOGX); else render(); toast('Napló javítva');
   }
 });
+// a testsúly ténylegesen megmozgatott része gyakorlatonként (szakirodalmi közelítés)
+function bwFrac(name) {
+  const n = fold(name);
+  if (/plank|tartas/.test(n)) return 0;
+  if (/hiperext/.test(n)) return 0.5;
+  if (/terdemel|labemeles fugg|fuggo/.test(n)) return 0.3;
+  if (/fekvotamasz|push-?up/.test(n)) return 0.65;
+  if (/tolodzkod|dip/.test(n)) return 0.95;
+  if (/chin|pull-?up|huzodz/.test(n)) return 1;
+  if (/farizomhid|csipoemel|glute bridge|bekapump/.test(n)) return 0.4;
+  if (/guggol|kitores|bolgar|fellep/.test(n)) return 0.85;
+  return 0;
+}
+// egy lezárt edzés megmozgatott súlya kg-ban: súly × ismétlés; testsúlyosnál a testsúly megmozgatott része is
 function sessVol(s) {
   let v = 0;
-  for (const it of s.items) { if (it.bw || it.assist) continue; for (const z of it.sets) if (!z.wu) v += (it.plus ? (z.p || 0) : (z.w || 0)) * (z.r || 0) * (it.pair || it.side ? 2 : 1); }
+  for (const it of s.items) {
+    const f = bwFrac(it.name);
+    for (const z of it.sets) {
+      if (z.wu) continue;
+      const load = it.plus ? f * ((z.w || 0) - (z.p || 0)) + (z.p || 0) : (it.bw || it.assist) ? f * (z.w || 0) : (z.w || 0) * (it.pair || it.side ? 2 : 1);
+      v += load * (z.r || 0);
+    }
+  }
   return Math.round(v);
 }
 function restKcal() {

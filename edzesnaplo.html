@@ -25,6 +25,8 @@
   --acc:#93a6dd;--acc2:#b6c3ea;--soft:rgba(147,166,221,.14);--shadow:0 10px 30px -12px rgba(0,0,0,.6)}}
 *{box-sizing:border-box}
 [hidden]{display:none!important}#exform.logm .nolog{display:none}
+.gfilter{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}.gfilter .chip{border:1px solid var(--line);background:transparent;border-radius:999px;padding:5px 11px;font:inherit;font-size:13px;font-weight:700;color:var(--ink)}
+.gfilter .chip.on{background:var(--acc);border-color:var(--acc);color:#fff}.gfilter .chip small{opacity:.65;font-weight:600}
 #editdlg{max-height:90vh;overflow:auto}.edl{margin:10px 0;text-align:left}.edi{border-top:1px solid var(--line);padding:8px 0}
 .edh{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px}
 .eds{display:grid;grid-template-columns:24px 1fr 1fr 38px;gap:6px;align-items:center;margin:4px 0}.eds input{min-width:0;padding:6px}
@@ -819,6 +821,20 @@ function liveVol(day) {
 }
 // egy lezárt edzés megmozgatott súlya kg-ban, ugyanazzal a szabállyal, mint élőben
 const FEEL = { hard: '😫 nehéz volt', ok: '🙂 rendben', easy: '💪 könnyű' };
+// edzéstípus a szűrőhöz (a kártyán lévő címkéből)
+const GROUPS = ['Hát', 'Mell', 'Váll', 'Kar', 'Láb', 'Far', 'Has', 'Egyéb'];
+const dayFilter = new Set();
+function grpOf(ex) {
+  const t = fold(primOf(ex) || '');
+  if (/^has/.test(t)) return 'Has';
+  if (/^(bicepsz|tricepsz)/.test(t)) return 'Kar';
+  if (/^vall/.test(t)) return 'Váll';
+  if (/^mell/.test(t)) return 'Mell';
+  if (/^(hat|derek)/.test(t)) return 'Hát';
+  if (/^far/.test(t)) return 'Far';
+  if (/^(comb|vadli|belso comb)/.test(t)) return 'Láb';
+  return 'Egyéb';
+}
 function noteBox(day, ex) {
   const cn = S.cur[day.id] || {}, fv = (cn.feel || {})[ex.id] || '', nt = (cn.notes || {})[ex.id] || '';
   return `<div class="enote">${Object.entries(FEEL).map(([k, v]) => `<button class="fchip${fv === k ? ' on' : ''}" data-act="feel" data-v="${k}" title="${v}">${v.split(' ')[0]}</button>`).join('')}<input class="nt" type="text" value="${esc(nt)}" placeholder="📝 megjegyzés (pl. ma nehezen ment)"></div>`;
@@ -1329,6 +1345,12 @@ function renderDay(day) {
   if (!editMode) list = list.filter(isGoing).concat(list.filter((x) => !isGoing(x)));
   if (fold) list = list.filter((x) => !isDone(x)).concat(list.filter(isDone));
   if (!editMode) list = list.filter((x) => !isSkip(day, x)).concat(list.filter((x) => isSkip(day, x)));
+  if (!editMode && list.length) { // szűrő: izomcsoport szerint
+    const have = GROUPS.filter((g) => list.some((x) => grpOf(x) === g));
+    for (const g of [...dayFilter]) if (!have.includes(g)) dayFilter.delete(g);
+    if (have.length > 1) h += `<div class="gfilter">${['Mind', ...have].map((g) => `<button class="chip${g === 'Mind' ? (dayFilter.size ? '' : ' on') : (dayFilter.has(g) ? ' on' : '')}" data-act="gfilter" data-g="${g}">${g}${g === 'Mind' ? '' : ` <small>${list.filter((x) => grpOf(x) === g).length}</small>`}</button>`).join('')}</div>`;
+    if (dayFilter.size) list = list.filter((x) => dayFilter.has(grpOf(x)));
+  }
   list.forEach((ex, xi) => {
     if (!editMode && isSkip(day, ex)) {
       h += `<article class="card ex muted folded skipped" data-ex="${esc(ex.id)}"><div class="exhead"><div class="exinfo"><h3>${esc(ex.name)}</h3></div></div><button class="foldbar" data-act="unskip">✕ Ma kihagyva · visszavétel</button></article>`;
@@ -1848,6 +1870,7 @@ $('main').addEventListener('click', (e) => {
     case 'logdet': { const id = b.dataset.id; openDet.has(id) ? openDet.delete(id) : openDet.add(id); if ($('loglist') && LOGX) $('loglist').innerHTML = logList(LOGX); } break;
     case 'lognote': { const ss = S.sessions.find((x) => x.id === b.dataset.id); if (!ss) break; const v = prompt('Megjegyzés ehhez az edzéshez:', ss.note || ''); if (v === null) break; ss.note = v.trim(); save(); if (Gym.cloud) Gym.cloud.addSession(clone(ss)).catch(console.warn); if ($('loglist') && LOGX) $('loglist').innerHTML = logList(LOGX); else render(); } break;
     case 'logedit': openLogEdit(b.dataset.id); break;
+    case 'gfilter': { const g = b.dataset.g; if (g === 'Mind') dayFilter.clear(); else dayFilter.has(g) ? dayFilter.delete(g) : dayFilter.add(g); render(); } break;
     case 'logdel': if (confirm('Törlöd ezt az edzést a naplóból?')) { S.sessions = S.sessions.filter((s) => s.id !== b.dataset.id); if (Gym.cloud) Gym.cloud.delSession(b.dataset.id).catch(console.warn); save(); render(); } break;
     case 'unit': S.settings.unit = b.dataset.u; save(); render(); break;
     case 'exunit': ex.unit = exU(ex) === 'lb' ? 'kg' : 'lb'; save(); render(); break;
